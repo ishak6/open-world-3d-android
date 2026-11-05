@@ -14,6 +14,9 @@ jobs:
     runs-on: ubuntu-latest
     container:
       image: barichello/godot-ci:4.4.1
+    env:
+      ANDROID_HOME: /usr/lib/android-sdk
+      ANDROID_SDK_ROOT: /usr/lib/android-sdk
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -27,8 +30,11 @@ jobs:
 
       - name: Install Android SDK components
         run: |
-          yes | sdkmanager --licenses
-          sdkmanager "platform-tools" "platforms;android-35" "build-tools;35.0.0"
+          yes | sdkmanager --sdk_root="$ANDROID_HOME" --licenses
+          sdkmanager --sdk_root="$ANDROID_HOME" "platform-tools" "platforms;android-35" "build-tools;35.0.0"
+          test -x "$ANDROID_HOME/platform-tools/adb"
+          test -d "$ANDROID_HOME/platforms/android-35"
+          test -d "$ANDROID_HOME/build-tools/35.0.0"
 
       - name: Install download tools
         run: |
@@ -50,6 +56,7 @@ jobs:
           printf "4.4.1.stable" > "$TEMPLATE_DIR/version.txt"
           test -s "$TEMPLATE_DIR/android_source.zip"
           test -s "$TEMPLATE_DIR/android_debug.apk"
+          test -s "$TEMPLATE_DIR/android_release.apk"
 
       - name: Configure Godot Android export
         run: |
@@ -74,9 +81,9 @@ jobs:
       - name: Import project resources
         run: godot --headless --path . --editor --import --quit
 
-      - name: Install Android template and export APK
+      - name: Export Android APK
         run: |
-          timeout 20m godot --headless --path . --verbose --install-android-build-template --export-debug "Android" build/VillageFrontier-debug.apk
+          timeout 20m godot --headless --path . --verbose --export-debug "Android" build/VillageFrontier-debug.apk
         env:
           GODOT_ANDROID_KEYSTORE_DEBUG_PATH: /github/home/.android/debug.keystore
           GODOT_ANDROID_KEYSTORE_DEBUG_USER: androiddebugkey
