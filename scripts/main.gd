@@ -61,6 +61,7 @@ var hair_index := 0
 var hair_style_index := 0
 var face_shape_index := 0
 var pants_index := 0
+var world_save_timer := 0.0
 var pants_palette := [Color(0.10, 0.14, 0.22), Color(0.22, 0.24, 0.28), Color(0.30, 0.20, 0.12), Color(0.08, 0.22, 0.20)]
 var world_environment: WorldEnvironment
 var sky_material: ProceduralSkyMaterial
@@ -81,6 +82,7 @@ func _ready() -> void:
 	_build_environment()
 	_build_weather_particles()
 	_build_player()
+	_load_world_state()
 	_build_hud()
 	_update_chunks(true)
 	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
@@ -188,6 +190,26 @@ func _update_day_night(delta: float) -> void:
 		world_environment.environment.fog_density = 0.0018
 		world_environment.environment.fog_light_color = Color(0.62, 0.73, 0.79)
 
+func _load_world_state() -> void:
+	var config := ConfigFile.new()
+	if config.load("user://world.cfg") == OK:
+		var saved_position: Vector3 = config.get_value("world", "player_position", player.global_position)
+		player.global_position = saved_position
+		time_of_day = float(config.get_value("world", "time_of_day", time_of_day))
+		weather_mode = int(config.get_value("world", "weather_mode", 0)) % 3
+	_update_day_night(0.0)
+	if rain_particles:
+		rain_particles.emitting = weather_mode == 1
+
+func _save_world_state() -> void:
+	if player == null:
+		return
+	var config := ConfigFile.new()
+	config.set_value("world", "player_position", player.global_position)
+	config.set_value("world", "time_of_day", time_of_day)
+	config.set_value("world", "weather_mode", weather_mode)
+	config.save("user://world.cfg")
+
 func _cycle_weather() -> void:
 	weather_mode = (weather_mode + 1) % 3
 	if rain_particles:
@@ -195,9 +217,14 @@ func _cycle_weather() -> void:
 	if weather_button:
 		weather_button.text = ["WEATHER: CLEAR", "WEATHER: RAIN", "WEATHER: MIST"][weather_mode]
 	_update_day_night(0.0)
+	_save_world_state()
 
 func _process(delta: float) -> void:
 	_update_day_night(delta)
+	world_save_timer += delta
+	if world_save_timer >= 15.0:
+		world_save_timer = 0.0
+		_save_world_state()
 	if rain_particles and player:
 		rain_particles.global_position = player.global_position + Vector3(0, 13, 0)
 	for i in range(villager_nodes.size()):
@@ -925,6 +952,7 @@ func _build_hud() -> void:
 	weather_button.anchor_bottom = 0.0
 	hud.add_child(weather_button)
 	weather_button.pressed.connect(_cycle_weather)
+	weather_button.text = ["WEATHER: CLEAR", "WEATHER: RAIN", "WEATHER: MIST"][weather_mode]
 
 func _build_creator_and_map(hud: CanvasLayer) -> void:
 	var creator_button := _make_button("CHARACTER", Vector2(-190, 78), Vector2(174, 48))
