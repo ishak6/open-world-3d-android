@@ -20,9 +20,9 @@ const VISUAL_STYLE := "HYBRID"
 
 # Editable from the Main scene Inspector (script attached to VillageFrontier).
 @export_group("Camera")
-@export_range(-35.0, 5.0, 0.5) var camera_pitch_degrees := -12.0
-@export_range(2.5, 12.0, 0.1) var camera_distance := 5.8
-@export_range(0.8, 2.4, 0.05) var camera_follow_height := 1.45
+@export_range(-55.0, -5.0, 0.5) var camera_pitch_degrees := -24.0
+@export_range(2.5, 12.0, 0.1) var camera_distance := 6.2
+@export_range(0.8, 2.4, 0.05) var camera_follow_height := 1.55
 @export_range(55.0, 90.0, 1.0) var camera_field_of_view := 72.0
 
 var player: CharacterBody3D
@@ -840,10 +840,11 @@ func _build_player() -> void:
 	camera_pivot.position.y = camera_follow_height
 	camera_rig.add_child(camera_pivot)
 	camera = Camera3D.new()
-	camera.position = Vector3(0, 1.0, camera_distance)
+	camera.position = Vector3(0, 0.8, camera_distance)
 	camera.fov = camera_field_of_view
-	camera.far = 360.0
-	camera.rotation_degrees.x = camera_pitch_degrees
+	camera.near = 0.05
+	camera.far = 500.0
+	camera.rotation_degrees = Vector3(camera_pitch_degrees, 0.0, 0.0)
 	# Negative X pitch aims the camera down toward the player and terrain.
 	camera.current = true
 	camera_pivot.add_child(camera)
