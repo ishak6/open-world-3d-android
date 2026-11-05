@@ -258,11 +258,13 @@ func _build_hud() -> void:
 	joystick.gui_input.connect(_on_joystick_input)
 	hud.add_child(joystick)
 	var base := ColorRect.new()
+	base.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	base.position = Vector2(8, 8)
 	base.size = Vector2(134, 134)
 	base.color = Color(0.12, 0.18, 0.22, 0.42)
 	joystick.add_child(base)
 	var knob := ColorRect.new()
+	knob.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	knob.position = Vector2(48, 48)
 	knob.size = Vector2(54, 54)
 	knob.color = Color(0.75, 0.85, 0.95, 0.65)
@@ -298,6 +300,8 @@ func _on_joystick_input(event: InputEvent) -> void:
 		move_vector = (event.position - center).limit_length(58) / 58.0
 	elif event is InputEventMouseButton:
 		joystick_active = event.pressed
+		if not event.pressed:
+			move_vector = Vector2.ZERO
 	elif event is InputEventMouseMotion and joystick_active:
 		move_vector = (event.position - Vector2(75, 75)).limit_length(58) / 58.0
 
@@ -325,7 +329,13 @@ func _physics_process(delta: float) -> void:
 	var keyboard := Vector2.ZERO
 	keyboard = Input.get_vector("ui_left", "ui_right", "ui_up", "ui_down")
 	var input_vector := move_vector if move_vector.length() > 0.08 else keyboard
-	var direction := (player.transform.basis * Vector3(input_vector.x, 0, input_vector.y)).normalized()
+	var camera_forward := -camera_pivot.global_transform.basis.z
+	camera_forward.y = 0.0
+	camera_forward = camera_forward.normalized()
+	var camera_right := camera_pivot.global_transform.basis.x
+	camera_right.y = 0.0
+	camera_right = camera_right.normalized()
+	var direction := (camera_right * input_vector.x + camera_forward * -input_vector.y).normalized()
 	if direction.length() > 0.01:
 		player.velocity.x = direction.x * (RUN_SPEED if is_running else WALK_SPEED)
 		player.velocity.z = direction.z * (RUN_SPEED if is_running else WALK_SPEED)
