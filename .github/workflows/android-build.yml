@@ -1,0 +1,39 @@
+name: Build Android APK
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  android:
+    name: Export Godot Android APK
+    runs-on: ubuntu-latest
+    container:
+      image: barichello/godot-ci:4.4.1
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Verify Godot and Android toolchain
+        run: |
+          godot --version
+          java -version
+          mkdir -p build
+
+      - name: Import project resources
+        run: godot --headless --path . --editor --import
+
+      - name: Export debug APK
+        run: godot --headless --path . --verbose --export-debug "Android" build/VillageFrontier-debug.apk
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: VillageFrontier-Android-debug
+          path: build/VillageFrontier-debug.apk
+          if-no-files-found: error
+          retention-days: 14
