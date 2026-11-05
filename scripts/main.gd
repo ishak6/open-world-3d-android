@@ -654,6 +654,28 @@ func _build_player() -> void:
 	var eye_mat := _material(Color(0.025, 0.025, 0.03))
 	_make_piece(character_visual, "EyeLeft", eye_mesh, Vector3(-0.095, 1.91, -0.235), eye_mat)
 	_make_piece(character_visual, "EyeRight", eye_mesh, Vector3(0.095, 1.91, -0.235), eye_mat)
+	var ear_mesh := SphereMesh.new()
+	ear_mesh.radius = 0.075
+	ear_mesh.height = 0.14
+	_make_piece(character_visual, "EarLeft", ear_mesh, Vector3(-0.27, 1.87, 0), skin_mat)
+	_make_piece(character_visual, "EarRight", ear_mesh, Vector3(0.27, 1.87, 0), skin_mat)
+	var nose_mesh := SphereMesh.new()
+	nose_mesh.radius = 0.055
+	nose_mesh.height = 0.09
+	_make_piece(character_visual, "Nose", nose_mesh, Vector3(0, 1.84, -0.27), skin_mat)
+	var neck_mesh := CylinderMesh.new()
+	neck_mesh.top_radius = 0.12
+	neck_mesh.bottom_radius = 0.14
+	neck_mesh.height = 0.22
+	_make_piece(character_visual, "Neck", neck_mesh, Vector3(0, 1.58, 0), skin_mat)
+	var shoe_mesh := BoxMesh.new()
+	shoe_mesh.size = Vector3(0.28, 0.16, 0.42)
+	var shoe_mat := _material(Color(0.055, 0.06, 0.075))
+	_make_piece(character_visual, "LeftShoe", shoe_mesh, Vector3(-0.16, 0.08, -0.045), shoe_mat)
+	_make_piece(character_visual, "RightShoe", shoe_mesh, Vector3(0.16, 0.08, -0.045), shoe_mat)
+	var backpack_mesh := BoxMesh.new()
+	backpack_mesh.size = Vector3(0.42, 0.55, 0.22)
+	_make_piece(character_visual, "Backpack", backpack_mesh, Vector3(0, 1.12, 0.30), _material(Color(0.32, 0.20, 0.10)))
 
 	var arm_mesh := CapsuleMesh.new()
 	arm_mesh.radius = 0.105
