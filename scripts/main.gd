@@ -42,6 +42,12 @@ var left_arm: MeshInstance3D
 var right_arm: MeshInstance3D
 var left_leg: MeshInstance3D
 var right_leg: MeshInstance3D
+var left_arm_pivot: Node3D
+var right_arm_pivot: Node3D
+var left_leg_pivot: Node3D
+var right_leg_pivot: Node3D
+var animation_player: AnimationPlayer
+var active_animation := ""
 var creator_panel: PanelContainer
 var map_panel: PanelContainer
 var animation_clock := 0.0
@@ -473,13 +479,36 @@ func _build_player() -> void:
 	var arm_mesh := CapsuleMesh.new()
 	arm_mesh.radius = 0.105
 	arm_mesh.height = 0.72
-	left_arm = _make_piece(character_visual, "LeftArm", arm_mesh, Vector3(-0.43, 1.15, 0), skin_mat)
-	right_arm = _make_piece(character_visual, "RightArm", arm_mesh, Vector3(0.43, 1.15, 0), skin_mat)
+	left_arm_pivot = Node3D.new()
+	left_arm_pivot.name = "LeftArmPivot"
+	left_arm_pivot.position = Vector3(-0.43, 1.48, 0)
+	character_visual.add_child(left_arm_pivot)
+	left_arm = _make_piece(left_arm_pivot, "LeftArm", arm_mesh, Vector3(0, -0.35, 0), skin_mat)
+	right_arm_pivot = Node3D.new()
+	right_arm_pivot.name = "RightArmPivot"
+	right_arm_pivot.position = Vector3(0.43, 1.48, 0)
+	character_visual.add_child(right_arm_pivot)
+	right_arm = _make_piece(right_arm_pivot, "RightArm", arm_mesh, Vector3(0, -0.35, 0), skin_mat)
+
 	var leg_mesh := CapsuleMesh.new()
 	leg_mesh.radius = 0.13
 	leg_mesh.height = 0.78
-	left_leg = _make_piece(character_visual, "LeftLeg", leg_mesh, Vector3(-0.16, 0.43, 0), pants_mat)
-	right_leg = _make_piece(character_visual, "RightLeg", leg_mesh, Vector3(0.16, 0.43, 0), pants_mat)
+	left_leg_pivot = Node3D.new()
+	left_leg_pivot.name = "LeftLegPivot"
+	left_leg_pivot.position = Vector3(-0.16, 0.82, 0)
+	character_visual.add_child(left_leg_pivot)
+	left_leg = _make_piece(left_leg_pivot, "LeftLeg", leg_mesh, Vector3(0, -0.39, 0), pants_mat)
+	right_leg_pivot = Node3D.new()
+	right_leg_pivot.name = "RightLegPivot"
+	right_leg_pivot.position = Vector3(0.16, 0.82, 0)
+	character_visual.add_child(right_leg_pivot)
+	right_leg = _make_piece(right_leg_pivot, "RightLeg", leg_mesh, Vector3(0, -0.39, 0), pants_mat)
+
+	animation_player = AnimationPlayer.new()
+	animation_player.name = "CharacterAnimationPlayer"
+	animation_player.root_node = NodePath("..")
+	player.add_child(animation_player)
+	_build_character_animations()
 
 	var collision := CollisionShape3D.new()
 	var shape := CapsuleShape3D.new()
@@ -859,25 +888,72 @@ func _rotate_camera(delta: Vector2) -> void:
 	camera_pivot.rotate_y(-delta.x * LOOK_SENSITIVITY)
 	camera_pivot.rotation.x = clamp(camera_pivot.rotation.x - delta.y * LOOK_SENSITIVITY, -0.95, 0.48)
 
-func _update_character_animation(delta: float) -> void:
-	if character_visual == null:
+func _add_animation_track(animation: Animation, node_path: String, times: Array[float], values: Array[Vector3]) -> void:
+	var track := animation.add_track(Animation.TYPE_VALUE)
+	animation.track_set_path(track, NodePath(node_path + ":rotation"))
+	animation.value_track_set_update_mode(track, Animation.UPDATE_CONTINUOUS)
+	for i in range(times.size()):
+		animation.track_insert_key(track, times[i], values[i])
+
+func _build_character_animations() -> void:
+	var library := AnimationLibrary.new()
+	var idle := Animation.new()
+	idle.resource_name = "Idle"
+	idle.length = 2.0
+	idle.loop_mode = Animation.LOOP_LINEAR
+	_add_animation_track(idle, "CharacterVisual/LeftArmPivot", [0.0, 1.0, 2.0], [Vector3(0, 0, -0.035), Vector3(0, 0, 0.035), Vector3(0, 0, -0.035)])
+	_add_animation_track(idle, "CharacterVisual/RightArmPivot", [0.0, 1.0, 2.0], [Vector3(0, 0, 0.035), Vector3(0, 0, -0.035), Vector3(0, 0, 0.035)])
+	library.add_animation("Idle", idle)
+
+	var walk := Animation.new()
+	walk.resource_name = "Walk"
+	walk.length = 0.82
+	walk.loop_mode = Animation.LOOP_LINEAR
+	_add_animation_track(walk, "CharacterVisual/LeftArmPivot", [0.0, 0.205, 0.41, 0.615, 0.82], [Vector3(-0.52, 0, 0), Vector3.ZERO, Vector3(0.52, 0, 0), Vector3.ZERO, Vector3(-0.52, 0, 0)])
+	_add_animation_track(walk, "CharacterVisual/RightArmPivot", [0.0, 0.205, 0.41, 0.615, 0.82], [Vector3(0.52, 0, 0), Vector3.ZERO, Vector3(-0.52, 0, 0), Vector3.ZERO, Vector3(0.52, 0, 0)])
+	_add_animation_track(walk, "CharacterVisual/LeftLegPivot", [0.0, 0.205, 0.41, 0.615, 0.82], [Vector3(0.58, 0, 0), Vector3.ZERO, Vector3(-0.58, 0, 0), Vector3.ZERO, Vector3(0.58, 0, 0)])
+	_add_animation_track(walk, "CharacterVisual/RightLegPivot", [0.0, 0.205, 0.41, 0.615, 0.82], [Vector3(-0.58, 0, 0), Vector3.ZERO, Vector3(0.58, 0, 0), Vector3.ZERO, Vector3(-0.58, 0, 0)])
+	library.add_animation("Walk", walk)
+
+	var run := Animation.new()
+	run.resource_name = "Run"
+	run.length = 0.56
+	run.loop_mode = Animation.LOOP_LINEAR
+	_add_animation_track(run, "CharacterVisual/LeftArmPivot", [0.0, 0.14, 0.28, 0.42, 0.56], [Vector3(-0.88, 0, 0), Vector3.ZERO, Vector3(0.88, 0, 0), Vector3.ZERO, Vector3(-0.88, 0, 0)])
+	_add_animation_track(run, "CharacterVisual/RightArmPivot", [0.0, 0.14, 0.28, 0.42, 0.56], [Vector3(0.88, 0, 0), Vector3.ZERO, Vector3(-0.88, 0, 0), Vector3.ZERO, Vector3(0.88, 0, 0)])
+	_add_animation_track(run, "CharacterVisual/LeftLegPivot", [0.0, 0.14, 0.28, 0.42, 0.56], [Vector3(0.92, 0, 0), Vector3.ZERO, Vector3(-0.92, 0, 0), Vector3.ZERO, Vector3(0.92, 0, 0)])
+	_add_animation_track(run, "CharacterVisual/RightLegPivot", [0.0, 0.14, 0.28, 0.42, 0.56], [Vector3(-0.92, 0, 0), Vector3.ZERO, Vector3(0.92, 0, 0), Vector3.ZERO, Vector3(-0.92, 0, 0)])
+	library.add_animation("Run", run)
+
+	var jump := Animation.new()
+	jump.resource_name = "Jump"
+	jump.length = 0.48
+	jump.loop_mode = Animation.LOOP_LINEAR
+	_add_animation_track(jump, "CharacterVisual/LeftArmPivot", [0.0, 0.24, 0.48], [Vector3(-0.25, 0, 0), Vector3(-1.0, 0, -0.12), Vector3(-1.0, 0, -0.12)])
+	_add_animation_track(jump, "CharacterVisual/RightArmPivot", [0.0, 0.24, 0.48], [Vector3(-0.25, 0, 0), Vector3(-1.0, 0, 0.12), Vector3(-1.0, 0, 0.12)])
+	_add_animation_track(jump, "CharacterVisual/LeftLegPivot", [0.0, 0.24, 0.48], [Vector3(0.1, 0, 0), Vector3(0.28, 0, 0), Vector3(0.28, 0, 0)])
+	_add_animation_track(jump, "CharacterVisual/RightLegPivot", [0.0, 0.24, 0.48], [Vector3(0.1, 0, 0), Vector3(0.28, 0, 0), Vector3(0.28, 0, 0)])
+	library.add_animation("Jump", jump)
+
+	animation_player.add_animation_library("", library)
+	animation_player.play("Idle")
+
+func _update_character_animation(_delta: float) -> void:
+	if character_visual == null or animation_player == null:
 		return
 	var horizontal_speed := Vector2(player.velocity.x, player.velocity.z).length()
-	if horizontal_speed > 0.5 and player.is_on_floor():
-		animation_clock += delta * (10.0 if is_running else 7.0)
-		var swing := sin(animation_clock) * 0.48
-		left_arm.rotation.x = swing
-		right_arm.rotation.x = -swing
-		left_leg.rotation.x = -swing
-		right_leg.rotation.x = swing
-	else:
-		animation_clock = 0.0
-		left_arm.rotation.x = move_toward(left_arm.rotation.x, 0.0, delta * 3.0)
-		right_arm.rotation.x = move_toward(right_arm.rotation.x, 0.0, delta * 3.0)
-		left_leg.rotation.x = move_toward(left_leg.rotation.x, 0.0, delta * 3.0)
-		right_leg.rotation.x = move_toward(right_leg.rotation.x, 0.0, delta * 3.0)
+	var next_animation := "Jump"
+	if player.is_on_floor():
+		if horizontal_speed > 0.5:
+			next_animation = "Run" if is_running else "Walk"
+		else:
+			next_animation = "Idle"
+	if next_animation != active_animation:
+		active_animation = next_animation
+		animation_player.play(next_animation, 0.18)
+		animation_player.speed_scale = 1.0
 	if not player.is_on_floor():
-		character_visual.position.y = 0.06
+		character_visual.position.y = 0.05
 	else:
 		character_visual.position.y = 0.0
 
