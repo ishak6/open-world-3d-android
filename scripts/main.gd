@@ -8,6 +8,7 @@ const MOVE_ACCELERATION := 19.0
 const MOVE_DECELERATION := 24.0
 const TURN_RESPONSE := 10.0
 const TerrainGenerator = preload("res://scripts/world/terrain_generator.gd")
+const AssetGenerator = preload("res://scripts/world/asset_generator.gd")
 const LOAD_RADIUS := 2
 const UNLOAD_RADIUS := 2
 const WALK_SPEED := 5.2
@@ -404,7 +405,9 @@ func _create_chunk(cx: int, cz: int) -> Node3D:
 	_add_chunk_landmarks(root, biome, rng, cx, cz)
 	if cx == 0 and cz == 0:
 		_build_starter_village(root)
+		AssetGenerator.add_village_props(root)
 	_add_chunk_vegetation(root, biome, rng, cx, cz)
+	AssetGenerator.add_chunk_detail(root, biome, rng, cx, cz, CHUNK_SIZE, Callable(self, "_world_height"))
 	return root
 
 func _add_chunk_landmarks(root: Node3D, biome: String, rng: RandomNumberGenerator, cx: int, cz: int) -> void:
@@ -1340,7 +1343,19 @@ func _update_character_animation(_delta: float) -> void:
 		animation_player.speed_scale = clampf(horizontal_speed / RUN_SPEED, 0.82, 1.22)
 	else:
 		animation_player.speed_scale = 1.0
-	character_visual.position.y = 0.045 if not player.is_on_floor() else 0.0
+	animation_clock += _delta
+	var local_motion := player.global_transform.basis.inverse() * Vector3(player.velocity.x, 0.0, player.velocity.z)
+	var target_side_lean := clampf(-local_motion.x * 0.018, -0.14, 0.14)
+	var target_forward_lean := clampf(-horizontal_speed * 0.012, -0.12, 0.0)
+	character_visual.rotation.z = lerp_angle(character_visual.rotation.z, target_side_lean, 1.0 - exp(-9.0 * _delta))
+	character_visual.rotation.x = lerp_angle(character_visual.rotation.x, target_forward_lean, 1.0 - exp(-7.0 * _delta))
+	if not player.is_on_floor():
+		character_visual.position.y = 0.035
+	elif horizontal_speed > 0.45:
+		var bob_rate := 17.0 if next_animation == "Run" else 11.5
+		character_visual.position.y = absf(sin(animation_clock * bob_rate)) * 0.045
+	else:
+		character_visual.position.y = sin(animation_clock * 2.2) * 0.012
 
 func _physics_process(delta: float) -> void:
 	if player == null or is_paused:
