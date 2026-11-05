@@ -62,6 +62,8 @@ var active_animation := ""
 var creator_panel: PanelContainer
 var map_panel: PanelContainer
 var animation_clock := 0.0
+var was_on_floor := true
+var landing_timer := 0.0
 var player_marker: ColorRect
 var skin_index := 0
 var outfit_index := 0
@@ -1321,6 +1323,26 @@ func _build_character_animations() -> void:
 	_add_animation_track(jump, "CharacterVisual/RightLegPivot", [0.0, 0.24, 0.48], [Vector3(0.1, 0, 0), Vector3(0.28, 0, 0), Vector3(0.28, 0, 0)])
 	library.add_animation("Jump", jump)
 
+	var fall := Animation.new()
+	fall.resource_name = "Fall"
+	fall.length = 0.72
+	fall.loop_mode = Animation.LOOP_LINEAR
+	_add_animation_track(fall, "CharacterVisual/LeftArmPivot", [0.0, 0.36, 0.72], [Vector3(-0.82, 0, -0.16), Vector3(-0.92, 0, -0.20), Vector3(-0.82, 0, -0.16)])
+	_add_animation_track(fall, "CharacterVisual/RightArmPivot", [0.0, 0.36, 0.72], [Vector3(-0.82, 0, 0.16), Vector3(-0.92, 0, 0.20), Vector3(-0.82, 0, 0.16)])
+	_add_animation_track(fall, "CharacterVisual/LeftLegPivot", [0.0, 0.36, 0.72], [Vector3(0.32, 0, 0), Vector3(0.42, 0, 0), Vector3(0.32, 0, 0)])
+	_add_animation_track(fall, "CharacterVisual/RightLegPivot", [0.0, 0.36, 0.72], [Vector3(0.32, 0, 0), Vector3(0.42, 0, 0), Vector3(0.32, 0, 0)])
+	library.add_animation("Fall", fall)
+
+	var land := Animation.new()
+	land.resource_name = "Land"
+	land.length = 0.24
+	land.loop_mode = Animation.LOOP_NONE
+	_add_animation_track(land, "CharacterVisual/LeftArmPivot", [0.0, 0.12, 0.24], [Vector3(-0.95, 0, -0.10), Vector3(-0.42, 0, -0.06), Vector3(-0.12, 0, 0)])
+	_add_animation_track(land, "CharacterVisual/RightArmPivot", [0.0, 0.12, 0.24], [Vector3(-0.95, 0, 0.10), Vector3(-0.42, 0, 0.06), Vector3(-0.12, 0, 0)])
+	_add_animation_track(land, "CharacterVisual/LeftLegPivot", [0.0, 0.12, 0.24], [Vector3(0.48, 0, 0), Vector3(0.22, 0, 0), Vector3.ZERO])
+	_add_animation_track(land, "CharacterVisual/RightLegPivot", [0.0, 0.12, 0.24], [Vector3(0.48, 0, 0), Vector3(0.22, 0, 0), Vector3.ZERO])
+	library.add_animation("Land", land)
+
 	animation_player.add_animation_library("", library)
 	animation_player.play("Idle")
 
@@ -1328,15 +1350,22 @@ func _update_character_animation(_delta: float) -> void:
 	if character_visual == null or animation_player == null:
 		return
 	var horizontal_speed := Vector2(player.velocity.x, player.velocity.z).length()
-	var next_animation := "Jump"
-	if player.is_on_floor():
-		if horizontal_speed > 0.45:
+	var on_floor := player.is_on_floor()
+	var next_animation := "Idle"
+	if not on_floor:
+		next_animation = "Jump" if player.velocity.y > 0.35 else "Fall"
+	else:
+		if not was_on_floor:
+			landing_timer = 0.24
+		if landing_timer > 0.0:
+			next_animation = "Land"
+			landing_timer = maxf(0.0, landing_timer - _delta)
+		elif horizontal_speed > 0.45:
 			next_animation = "Run" if is_running and horizontal_speed > WALK_SPEED * 0.65 else "Walk"
-		else:
-			next_animation = "Idle"
+	was_on_floor = on_floor
 	if next_animation != active_animation:
 		active_animation = next_animation
-		animation_player.play(next_animation, 0.14)
+		animation_player.play(next_animation, 0.08 if next_animation == "Land" else 0.14)
 	if next_animation == "Walk":
 		animation_player.speed_scale = clampf(horizontal_speed / WALK_SPEED, 0.72, 1.35)
 	elif next_animation == "Run":
@@ -1349,8 +1378,10 @@ func _update_character_animation(_delta: float) -> void:
 	var target_forward_lean := clampf(-horizontal_speed * 0.012, -0.12, 0.0)
 	character_visual.rotation.z = lerp_angle(character_visual.rotation.z, target_side_lean, 1.0 - exp(-9.0 * _delta))
 	character_visual.rotation.x = lerp_angle(character_visual.rotation.x, target_forward_lean, 1.0 - exp(-7.0 * _delta))
-	if not player.is_on_floor():
+	if not on_floor:
 		character_visual.position.y = 0.035
+	elif next_animation == "Land":
+		character_visual.position.y = -0.025
 	elif horizontal_speed > 0.45:
 		var bob_rate := 17.0 if next_animation == "Run" else 11.5
 		character_visual.position.y = absf(sin(animation_clock * bob_rate)) * 0.045
