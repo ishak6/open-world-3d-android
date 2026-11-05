@@ -488,18 +488,18 @@ func _add_water_surface(parent: Node3D, pos: Vector3, dimensions: Vector2, mater
 	var water := MeshInstance3D.new()
 	var plane := PlaneMesh.new()
 	plane.size = dimensions
+	plane.orientation = PlaneMesh.FACE_Y
 	plane.subdivide_width = 24
 	plane.subdivide_depth = 48
 	water.mesh = plane
 	water.material_override = material
 	water.position = pos
-	water.rotation_degrees.x = -90.0
 	parent.add_child(water)
 
 func _build_starter_village(root: Node3D) -> void:
 	var path_mat := _material(Color(0.57, 0.45, 0.29))
 	var water_shader := Shader.new()
-	water_shader.code = "shader_type spatial;\nrender_mode blend_mix, cull_disabled, depth_draw_opaque;\nuniform vec4 water_color : source_color = vec4(0.035, 0.30, 0.52, 0.82);\nvarying vec3 world_position;\nvoid vertex(){ world_position = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz; VERTEX.z += sin(VERTEX.x * 0.42 + TIME * 1.4) * 0.045 + cos(VERTEX.y * 0.31 + TIME) * 0.025; }\nvoid fragment(){ float ripple = sin(world_position.x * 0.55 + TIME * 1.8) * cos(world_position.z * 0.34 - TIME * 1.2); ALBEDO = water_color.rgb * (0.82 + ripple * 0.12); ROUGHNESS = 0.16; METALLIC = 0.18; SPECULAR = 0.8; ALPHA = water_color.a; }"
+	water_shader.code = "shader_type spatial;\nrender_mode blend_mix, cull_disabled, depth_draw_opaque;\nuniform vec4 water_color : source_color = vec4(0.035, 0.30, 0.52, 0.82);\nvarying vec3 world_position;\nvoid vertex(){ world_position = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz; VERTEX.y += sin(VERTEX.x * 0.42 + TIME * 1.4) * 0.045 + cos(VERTEX.z * 0.31 + TIME) * 0.025; }\nvoid fragment(){ float ripple = sin(world_position.x * 0.55 + TIME * 1.8) * cos(world_position.z * 0.34 - TIME * 1.2); ALBEDO = water_color.rgb * (0.82 + ripple * 0.12); ROUGHNESS = 0.16; METALLIC = 0.18; SPECULAR = 0.8; ALPHA = water_color.a; }"
 	water_material = ShaderMaterial.new()
 	water_material.shader = water_shader
 	var water_mat := water_material
