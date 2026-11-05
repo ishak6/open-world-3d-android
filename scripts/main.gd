@@ -15,10 +15,13 @@ const GRAPHICS_PROFILE := "MEDIUM"
 const VISUAL_STYLE := "HYBRID"
 
 var player: CharacterBody3D
+var camera_rig: Node3D
 var camera_pivot: Node3D
 var camera: Camera3D
 var move_vector := Vector2.ZERO
 var look_finger := -1
+var joystick_finger := -1
+var mouse_joystick_active := false
 var look_last := Vector2.ZERO
 var is_running := false
 var jump_requested := false
@@ -806,9 +809,14 @@ func _build_player() -> void:
 	collision.shape = shape
 	collision.position.y = 0.9
 	player.add_child(collision)
+	add_child(player)
+	camera_rig = Node3D.new()
+	camera_rig.name = "CameraRig"
+	add_child(camera_rig)
 	camera_pivot = Node3D.new()
+	camera_pivot.name = "CameraPivot"
 	camera_pivot.position.y = 1.45
-	player.add_child(camera_pivot)
+	camera_rig.add_child(camera_pivot)
 	camera = Camera3D.new()
 	camera.position = Vector3(0, 1.0, 5.8)
 	camera.fov = 72.0
@@ -816,7 +824,7 @@ func _build_player() -> void:
 	camera.rotation_degrees.x = -11
 	camera.current = true
 	camera_pivot.add_child(camera)
-	add_child(player)
+	camera_rig.global_position = player.global_position
 	_load_character_appearance()
 
 func _load_character_appearance() -> void:
@@ -1185,18 +1193,24 @@ func _button_style(color: Color) -> StyleBoxFlat:
 
 func _on_joystick_input(event: InputEvent) -> void:
 	if event is InputEventScreenTouch:
-		joystick_active = event.pressed
-		if not event.pressed:
+		if event.pressed and joystick_finger == -1:
+			joystick_finger = event.index
+			joystick_active = true
+			_update_joystick(event.position)
+		elif not event.pressed and event.index == joystick_finger:
+			joystick_finger = -1
+			joystick_active = false
 			move_vector = Vector2.ZERO
 			joystick_knob.position = Vector2(54, 54)
-	elif event is InputEventScreenDrag and joystick_active:
+	elif event is InputEventScreenDrag and joystick_active and event.index == joystick_finger:
 		_update_joystick(event.position)
-	elif event is InputEventMouseButton:
-		joystick_active = event.pressed
+	elif event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT:
+		mouse_joystick_active = event.pressed
+		joystick_active = mouse_joystick_active
 		if not event.pressed:
 			move_vector = Vector2.ZERO
 			joystick_knob.position = Vector2(54, 54)
-	elif event is InputEventMouseMotion and joystick_active:
+	elif event is InputEventMouseMotion and mouse_joystick_active:
 		_update_joystick(event.position)
 
 func _update_joystick(pointer: Vector2) -> void:
@@ -1207,6 +1221,7 @@ func _update_joystick(pointer: Vector2) -> void:
 func _reset_camera() -> void:
 	camera_pivot.rotation = Vector3.ZERO
 	camera.rotation_degrees.x = -11
+	look_finger = -1
 
 func _toggle_pause() -> void:
 	is_paused = not is_paused
@@ -1215,10 +1230,15 @@ func _toggle_pause() -> void:
 	if is_paused:
 		is_running = false
 		move_vector = Vector2.ZERO
+		joystick_active = false
+		joystick_finger = -1
+		look_finger = -1
+		if joystick_knob:
+			joystick_knob.position = Vector2(54, 54)
 
 func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventScreenTouch:
-		if event.pressed and event.position.x > get_viewport().get_visible_rect().size.x * 0.42:
+		if event.pressed and look_finger == -1 and event.position.x > get_viewport().get_visible_rect().size.x * 0.42:
 			look_finger = event.index
 			look_last = event.position
 		elif not event.pressed and event.index == look_finger:
@@ -1324,6 +1344,7 @@ func _physics_process(delta: float) -> void:
 	camera_right.y = 0.0
 	camera_right = camera_right.normalized()
 	var direction := (camera_right * input_vector.x + camera_forward * -input_vector.y).normalized()
+	camera_rig.global_position = player.global_position
 	if direction.length() > 0.01:
 		var speed := RUN_SPEED if is_running else WALK_SPEED
 		player.velocity.x = direction.x * speed
@@ -1338,6 +1359,7 @@ func _physics_process(delta: float) -> void:
 		player.velocity.y = 6.0
 	jump_requested = false
 	player.move_and_slide()
+	camera_rig.global_position = player.global_position
 	if player.global_position.y < -20.0:
 		player.global_position = Vector3(current_chunk.x * CHUNK_SIZE + 32, 3, current_chunk.y * CHUNK_SIZE + 32)
 		player.velocity = Vector3.ZERO
