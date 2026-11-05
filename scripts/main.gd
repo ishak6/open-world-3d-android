@@ -772,11 +772,6 @@ func _build_player() -> void:
 	neck_mesh.bottom_radius = 0.14
 	neck_mesh.height = 0.22
 	_make_piece(character_visual, "Neck", neck_mesh, Vector3(0, 1.58, 0), skin_mat)
-	var shoe_mesh := BoxMesh.new()
-	shoe_mesh.size = Vector3(0.28, 0.16, 0.42)
-	var shoe_mat := _material(Color(0.055, 0.06, 0.075))
-	_make_piece(character_visual, "LeftShoe", shoe_mesh, Vector3(-0.16, 0.08, -0.045), shoe_mat)
-	_make_piece(character_visual, "RightShoe", shoe_mesh, Vector3(0.16, 0.08, -0.045), shoe_mat)
 	var backpack_mesh := BoxMesh.new()
 	backpack_mesh.size = Vector3(0.42, 0.55, 0.22)
 	_make_piece(character_visual, "Backpack", backpack_mesh, Vector3(0, 1.12, 0.30), _material(Color(0.32, 0.20, 0.10)))
@@ -808,6 +803,13 @@ func _build_player() -> void:
 	right_leg_pivot.position = Vector3(0.16, 0.82, 0)
 	character_visual.add_child(right_leg_pivot)
 	right_leg = _make_piece(right_leg_pivot, "RightLeg", leg_mesh, Vector3(0, -0.39, 0), pants_mat)
+
+	# Feet follow the animated leg pivots instead of floating in place.
+	var shoe_mesh := BoxMesh.new()
+	shoe_mesh.size = Vector3(0.30, 0.16, 0.44)
+	var shoe_mat := _material(Color(0.055, 0.06, 0.075))
+	_make_piece(left_leg_pivot, "LeftShoe", shoe_mesh, Vector3(0, -0.73, -0.07), shoe_mat)
+	_make_piece(right_leg_pivot, "RightShoe", shoe_mesh, Vector3(0, -0.73, -0.07), shoe_mat)
 
 	animation_player = AnimationPlayer.new()
 	animation_player.name = "CharacterAnimationPlayer"
