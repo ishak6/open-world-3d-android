@@ -164,7 +164,7 @@ func _update_day_night(delta: float) -> void:
 	sky_material.sky_top_color = night_top.lerp(day_top, daylight)
 	sky_material.sky_horizon_color = night_horizon.lerp(day_horizon, daylight).lerp(Color(0.92, 0.40, 0.22), twilight * 0.42)
 	sky_material.ground_bottom_color = Color(0.035, 0.045, 0.065).lerp(Color(0.16, 0.20, 0.15), daylight)
-	sun_light.rotation_degrees = Vector3(-360.0 * time_of_day + 90.0, -32.0, 0.0)
+	sun_light.rotation_degrees = Vector3(-48.0 + sin(time_of_day * TAU) * 28.0, -32.0, 0.0)
 	sun_light.light_energy = 0.06 + daylight * 1.34
 	sun_light.light_color = Color(1.0, 0.72, 0.48).lerp(Color(1.0, 0.96, 0.86), daylight)
 	world_environment.environment.ambient_light_color = Color(0.12, 0.16, 0.28).lerp(Color(0.72, 0.80, 0.91), daylight)
@@ -492,7 +492,7 @@ func _add_water_surface(parent: Node3D, pos: Vector3, dimensions: Vector2, mater
 func _build_starter_village(root: Node3D) -> void:
 	var path_mat := _material(Color(0.57, 0.45, 0.29))
 	var water_shader := Shader.new()
-	water_shader.code = "shader_type spatial;\nrender_mode blend_mix, cull_disabled, depth_draw_opaque;\nuniform vec4 water_color : source_color = vec4(0.035, 0.30, 0.52, 0.82);\nvarying vec3 world_position;\nvoid vertex(){ world_position = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz; VERTEX.y += sin(VERTEX.x * 0.42 + TIME * 1.4) * 0.045 + cos(VERTEX.y * 0.31 + TIME) * 0.025; }\nvoid fragment(){ float ripple = sin(world_position.x * 0.55 + TIME * 1.8) * cos(world_position.z * 0.34 - TIME * 1.2); ALBEDO = water_color.rgb * (0.82 + ripple * 0.12); ROUGHNESS = 0.16; METALLIC = 0.18; SPECULAR = 0.8; ALPHA = water_color.a; }"
+	water_shader.code = "shader_type spatial;\nrender_mode blend_mix, cull_disabled, depth_draw_opaque;\nuniform vec4 water_color : source_color = vec4(0.035, 0.30, 0.52, 0.82);\nvarying vec3 world_position;\nvoid vertex(){ world_position = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz; VERTEX.z += sin(VERTEX.x * 0.42 + TIME * 1.4) * 0.045 + cos(VERTEX.y * 0.31 + TIME) * 0.025; }\nvoid fragment(){ float ripple = sin(world_position.x * 0.55 + TIME * 1.8) * cos(world_position.z * 0.34 - TIME * 1.2); ALBEDO = water_color.rgb * (0.82 + ripple * 0.12); ROUGHNESS = 0.16; METALLIC = 0.18; SPECULAR = 0.8; ALPHA = water_color.a; }"
 	water_material = ShaderMaterial.new()
 	water_material.shader = water_shader
 	var water_mat := water_material
