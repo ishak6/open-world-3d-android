@@ -17,7 +17,7 @@ Offline third-person Android open-world exploration game.
 
 ### World streaming
 
-The world is divided into 64 m × 64 m chunks. The player-centered active window is 5 × 5 chunks (25 active chunks). Chunks farther than a 3-chunk Chebyshev distance are unloaded. Each chunk is regenerated from the world seed and integer chunk coordinates, so revisiting a location reconstructs the same biome and prop layout.
+The world is divided into 64 m × 64 m chunks. The player-centered active window is 5 × 5 chunks (25 active chunks). Chunks farther than a 2-chunk Chebyshev distance are unloaded. Each chunk is regenerated from the world seed and integer chunk coordinates, so revisiting a location reconstructs the same biome and prop layout.
 
 ### Terrain generation
 
