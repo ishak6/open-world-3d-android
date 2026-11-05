@@ -268,8 +268,11 @@ func _process(delta: float) -> void:
 			cloud.position.x += delta * 0.55
 			if cloud.position.x > 58.0:
 				cloud.position.x = -58.0
-	for i in range(villager_nodes.size()):
-		if is_instance_valid(villager_nodes[i]):
+	for i in range(villager_nodes.size() - 1, -1, -1):
+		if not is_instance_valid(villager_nodes[i]):
+			villager_nodes.remove_at(i)
+			villager_phases.remove_at(i)
+		else:
 			villager_phases[i] += delta
 			villager_nodes[i].rotation.y = sin(villager_phases[i] * 0.35) * 0.12
 			villager_nodes[i].position.y = sin(villager_phases[i] * 1.8) * 0.025
