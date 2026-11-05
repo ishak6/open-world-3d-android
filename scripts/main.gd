@@ -195,7 +195,14 @@ func _update_day_night(delta: float) -> void:
 	if delta > 0.0:
 		time_of_day = fposmod(time_of_day + delta / 1440.0, 1.0)
 	var daylight := maxf(0.0, sin((time_of_day - 0.25) * TAU))
-	var twilight := clamp(1.0 - absf(time_of_day - 0.25) * 5.0, 0.0, 1.0)
+	var sunrise_distance := absf(time_of_day - 0.25)
+	var sunset_distance := absf(time_of_day - 0.75)
+	sunrise_distance = minf(sunrise_distance, 1.0 - sunrise_distance)
+	sunset_distance = minf(sunset_distance, 1.0 - sunset_distance)
+	var twilight := maxf(
+		clampf(1.0 - sunrise_distance * 12.0, 0.0, 1.0),
+		clampf(1.0 - sunset_distance * 12.0, 0.0, 1.0)
+	)
 	var night_top := Color(0.012, 0.025, 0.075)
 	var day_top := Color(0.075, 0.20, 0.39)
 	var night_horizon := Color(0.045, 0.065, 0.12)
@@ -266,6 +273,10 @@ func _process(delta: float) -> void:
 			villager_phases[i] += delta
 			villager_nodes[i].rotation.y = sin(villager_phases[i] * 0.35) * 0.12
 			villager_nodes[i].position.y = sin(villager_phases[i] * 1.8) * 0.025
+
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_WM_CLOSE_REQUEST or what == NOTIFICATION_APPLICATION_FOCUS_OUT:
+		_save_world_state()
 
 func _chunk_key(cx: int, cz: int) -> String:
 	return str(cx) + ":" + str(cz)
@@ -814,9 +825,12 @@ func _load_character_appearance() -> void:
 			config.get_value("appearance", "pants", Color(0.10, 0.14, 0.22))
 		)
 		character_hair.albedo_color = config.get_value("appearance", "hair", Color(0.10, 0.065, 0.04))
-		hair_style_index = int(config.get_value("appearance", "hair_style", 0))
-		face_shape_index = int(config.get_value("appearance", "face_shape", 0))
-		pants_index = int(config.get_value("appearance", "pants_index", 0))
+		skin_index = int(config.get_value("appearance", "skin_index", 0)) % skin_palette.size()
+		outfit_index = int(config.get_value("appearance", "outfit_index", 0)) % outfit_palette.size()
+		hair_index = int(config.get_value("appearance", "hair_index", 0)) % hair_palette.size()
+		hair_style_index = int(config.get_value("appearance", "hair_style", 0)) % 4
+		face_shape_index = int(config.get_value("appearance", "face_shape", 0)) % 3
+		pants_index = int(config.get_value("appearance", "pants_index", 0)) % pants_palette.size()
 		_apply_hair_style()
 		_apply_face_shape()
 
@@ -831,6 +845,9 @@ func _save_character_appearance() -> void:
 	config.set_value("appearance", "shirt", character_shirt.albedo_color)
 	config.set_value("appearance", "pants", character_pants.albedo_color)
 	config.set_value("appearance", "hair", character_hair.albedo_color)
+	config.set_value("appearance", "skin_index", skin_index)
+	config.set_value("appearance", "outfit_index", outfit_index)
+	config.set_value("appearance", "hair_index", hair_index)
 	config.set_value("appearance", "hair_style", hair_style_index)
 	config.set_value("appearance", "face_shape", face_shape_index)
 	config.set_value("appearance", "pants_index", pants_index)
@@ -1015,12 +1032,18 @@ func _build_creator_and_map(hud: CanvasLayer) -> void:
 	creator_panel.visible = false
 	creator_panel.set_anchors_preset(Control.PRESET_CENTER)
 	creator_panel.position = Vector2(-210, -190)
-creator_panel.custom_minimum_size = Vector2(420, 470)
+	creator_panel.custom_minimum_size = Vector2(420, 470)
 	creator_panel.add_theme_stylebox_override("panel", _panel_style(Color(0.025, 0.07, 0.10, 0.97)))
 	hud.add_child(creator_panel)
+	var creator_scroll := ScrollContainer.new()
+	creator_scroll.custom_minimum_size = Vector2(390, 430)
+	creator_scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	creator_scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	creator_panel.add_child(creator_scroll)
 	var creator_box := VBoxContainer.new()
-	creator_box.add_theme_constant_override("separation", 12)
-	creator_panel.add_child(creator_box)
+	creator_box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	creator_box.add_theme_constant_override("separation", 10)
+	creator_scroll.add_child(creator_box)
 	var creator_title := Label.new()
 	creator_title.text = "CHARACTER STUDIO"
 	creator_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -1031,13 +1054,13 @@ creator_panel.custom_minimum_size = Vector2(420, 470)
 	creator_desc.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	creator_desc.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	creator_box.add_child(creator_desc)
-	var skin_button := _make_button("SKIN TONE  •  CHANGE", Vector2.ZERO, Vector2(370, 48))
+	var skin_button := _make_button("SKIN TONE  •  CHANGE", Vector2.ZERO, Vector2(360, 46))
 	creator_box.add_child(skin_button)
 	skin_button.pressed.connect(_cycle_skin)
 	var hair_button := _make_button("HAIR COLOR  •  CHANGE", Vector2.ZERO, Vector2(370, 48))
 	creator_box.add_child(hair_button)
 	hair_button.pressed.connect(_cycle_hair)
-	var hair_style_button := _make_button("HAIRSTYLE  •  CHANGE", Vector2.ZERO, Vector2(370, 42))
+	var hair_style_button := _make_button("HAIRSTYLE  •  CHANGE", Vector2.ZERO, Vector2(360, 42))
 	creator_box.add_child(hair_style_button)
 	hair_style_button.pressed.connect(_cycle_hair_style)
 	var face_button := _make_button("FACE SHAPE  •  CHANGE", Vector2.ZERO, Vector2(370, 42))
@@ -1049,7 +1072,7 @@ creator_panel.custom_minimum_size = Vector2(420, 470)
 	var pants_button := _make_button("TROUSER COLOR  •  CHANGE", Vector2.ZERO, Vector2(370, 42))
 	creator_box.add_child(pants_button)
 	pants_button.pressed.connect(_cycle_pants)
-	var close_creator := _make_button("DONE", Vector2.ZERO, Vector2(370, 46))
+	var close_creator := _make_button("DONE", Vector2.ZERO, Vector2(360, 44))
 	creator_box.add_child(close_creator)
 	close_creator.pressed.connect(func(): creator_panel.visible = false)
 
