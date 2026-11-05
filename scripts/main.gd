@@ -18,6 +18,13 @@ const GRAVITY := 18.0
 const GRAPHICS_PROFILE := "MEDIUM"
 const VISUAL_STYLE := "HYBRID"
 
+# Editable from the Main scene Inspector (script attached to VillageFrontier).
+@export_group("Camera")
+@export_range(-35.0, 5.0, 0.5) var camera_pitch_degrees := -12.0
+@export_range(2.5, 12.0, 0.1) var camera_distance := 5.8
+@export_range(0.8, 2.4, 0.05) var camera_follow_height := 1.45
+@export_range(55.0, 90.0, 1.0) var camera_field_of_view := 72.0
+
 var player: CharacterBody3D
 var camera_rig: Node3D
 var camera_pivot: Node3D
@@ -830,14 +837,14 @@ func _build_player() -> void:
 	add_child(camera_rig)
 	camera_pivot = Node3D.new()
 	camera_pivot.name = "CameraPivot"
-	camera_pivot.position.y = 1.45
+	camera_pivot.position.y = camera_follow_height
 	camera_rig.add_child(camera_pivot)
 	camera = Camera3D.new()
-	camera.position = Vector3(0, 1.0, 5.8)
-	camera.fov = 72.0
+	camera.position = Vector3(0, 1.0, camera_distance)
+	camera.fov = camera_field_of_view
 	camera.far = 360.0
-	camera.rotation_degrees.x = 12
-	# Positive X pitch points the camera down toward the player and terrain.
+	camera.rotation_degrees.x = camera_pitch_degrees
+	# Negative X pitch aims the camera down toward the player and terrain.
 	camera.current = true
 	camera_pivot.add_child(camera)
 	camera_rig.global_position = player.global_position
@@ -1236,7 +1243,7 @@ func _update_joystick(pointer: Vector2) -> void:
 
 func _reset_camera() -> void:
 	camera_pivot.rotation = Vector3.ZERO
-	camera.rotation_degrees.x = -11
+	camera.rotation_degrees.x = camera_pitch_degrees
 	look_finger = -1
 
 func _toggle_pause() -> void:
