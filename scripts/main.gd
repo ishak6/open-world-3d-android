@@ -256,7 +256,7 @@ func _load_world_state() -> void:
 			saved_position = Vector3(32.0, _world_height(32.0, 51.0) + 0.15, 51.0)
 		player.global_position = saved_position
 		time_of_day = clampf(float(config.get_value("world", "time_of_day", time_of_day)), 0.0, 1.0)
-		weather_mode = posmod(int(config.get_value("world", "weather_mode", 0)), 3)
+		weather_mode = wrapi(int(config.get_value("world", "weather_mode", 0)), 0, 3)
 	camera_rig.global_position = player.global_position
 	_update_day_night(0.0)
 	if rain_particles:
