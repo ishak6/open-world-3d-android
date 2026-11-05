@@ -23,6 +23,12 @@ Offline 3D open-world Android exploration game prototype, built with Godot 4.4.1
 - Character Studio prototype: skin tone, hair color and shirt color cycling with local appearance save.
 - Schematic exploration map UI.
 - Android-oriented Godot GL Compatibility renderer.
+- Runtime day/night cycle with changing sun energy, sky colors and ambient light.
+- Weather selector: clear, rain (local GPU rain particles) and mist/fog.
+- Animated river surface using a lightweight water shader.
+- Procedural terrain micro-variation shader for hybrid surface detail.
+- Village prototype details: gable roofs, doors, windows, chimneys, lamps and three decorative resident NPCs.
+- Character placeholder details: ears, nose, neck, shoes and backpack.
 
 ## World generation
 
@@ -70,8 +76,11 @@ The workflow uses Godot 4.4.1, matching Android export templates, Java 17 and An
 - Character motion uses procedural pivot-based AnimationPlayer clips; it is not a skeletal rig or motion-captured animation library.
 - The map is a schematic panel, not a live surveyed minimap or full world atlas.
 - Terrain is low-resolution procedural height mesh; it is not a detailed sculpted landscape.
-- The starter village is a small prototype; a large designed city, detailed roads, ocean/coastline, interiors and bridges across generated rivers are not complete.
-- NPCs, animals, vehicles, missions, inventory gameplay, world save/load, audio, swimming, full day/night and advanced weather are not complete.
+- The starter village remains a small procedural prototype; a large designed city, detailed road network, ocean/coastline, interiors and generated-river bridges are not complete.
+- Village residents are decorative idle prototypes without navigation, dialogue or schedules.
+- Rain is a local visual particle effect; there is no wet-surface simulation, thunder audio or puddle system.
+- Water has animated surface shading but no swimming, buoyancy, current simulation or water physics.
+- NPC AI, animals, vehicles, missions, inventory gameplay, world save/load, audio and swimming are not complete.
 - Physical Android device tests are still required for touch layout, thermal behavior, memory and sustained FPS.
 
 ## Project structure
