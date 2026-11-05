@@ -29,9 +29,15 @@ The global-coordinate sampling is a seam-control requirement: neighbouring chunk
 
 The Medium profile uses the mobile GL Compatibility renderer, moderate terrain mesh density, a limited active chunk window, reduced shadow distance, fog and biome palettes. Trees are grouped into per-chunk MultiMesh batches to reduce scene nodes and draw calls.
 
+### Environment simulation
+
+A lightweight runtime clock advances a full day over 24 real-time minutes. It updates the directional sun angle/energy, procedural sky colors and ambient illumination. The weather selector cycles clear, rain and mist. Rain uses a bounded GPU particle emitter positioned around the player; mist and rain adjust fog density. The river is a subdivided PlaneMesh with a small vertex-wave shader and animated surface shading. Terrain uses a low-cost procedural micro-variation shader over biome vertex colors.
+
+The starter village has gable-roof house meshes, doors, windows, chimneys, emissive lamp props and three decorative resident placeholders. Residents only idle/turn gently; they are not an AI/NPC gameplay system.
+
 ### Player and UI
 
-The existing third-person CharacterBody3D, touch joystick, camera drag, sprint, jump, pause, basic character appearance panel and schematic map remain in the prototype. The procedural placeholder character now has pivot-based AnimationPlayer clips for idle, walk, run and jump. It is still not a production skeletal rig; imported glTF character assets and authored animation clips remain a later milestone.
+The existing third-person CharacterBody3D, touch joystick, camera drag, sprint, jump, pause, basic character appearance panel and schematic map remain in the prototype. The procedural placeholder character now has pivot-based AnimationPlayer clips for idle, walk, run and jump, plus simple face/ear/nose/neck/shoe/backpack details. It is still not a production skeletal rig; imported glTF character assets and authored animation clips remain a later milestone.
 
 ## Performance budget and validation targets
 
@@ -57,16 +63,17 @@ These are engineering targets, not measured results:
 1. Validate generated terrain and Android build.
 2. Replace primitive player with a rigged glTF character and authored animation state machine.
 3. Replace schematic map with a live minimap and explored-world atlas.
-4. Build designed village districts, roads, forest, mountain, river and coast assets.
-5. Add day/night and weather controllers.
-6. Add NPC navigation, interaction, inventory, missions and persistent world save.
-7. Profile on physical devices and tune the Medium preset.
+4. Replace procedural village props and placeholder residents with authored assets and NPC navigation/dialogue.
+5. Build designed city districts, road splines, forest, mountain, river and coast assets; add water physics.
+6. Add interaction, inventory, missions and persistent world save.
+7. Replace the primitive player with a rigged glTF character and authored skeletal animation clips.
+8. Profile on physical devices and tune the Medium preset.
 
 ## Known risks
 
 - Concave terrain collision generation and per-chunk build time must be measured.
 - Procedural noise can create slopes unsuitable for roads unless roads receive dedicated flattening/spline data.
-- Generated water and river visuals are not yet a navigable water simulation.
+- The animated river is visual only; it is not a navigable water simulation.
 - MultiMesh reduces draw calls but does not eliminate overdraw or GPU cost.
 - Infinite coordinate growth eventually encounters floating-point precision limits; origin shifting may be required for very long sessions.
 - A successful CI export does not prove good mobile FPS or touch usability.
