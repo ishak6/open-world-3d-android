@@ -24,6 +24,11 @@ jobs:
           java -version
           mkdir -p build
 
+      - name: Ensure Android SDK platform is installed
+        run: |
+          yes | sdkmanager --licenses
+          sdkmanager "platforms;android-35" "build-tools;35.0.0"
+
       - name: Import project resources
         run: godot --headless --path . --editor --import
 
