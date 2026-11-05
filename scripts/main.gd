@@ -119,9 +119,14 @@ func _build_world() -> void:
 	for i in range(house_positions.size()):
 		var p: Vector3 = house_positions[i]
 		var wall_mat: Material = wall_mats[i % wall_mats.size()]
-		_add_box(self, p + Vector3(0, 1.7, 0), Vector3(8, 3.4, 7), wall_mat, true)
+		# Four wall sections leave a real doorway opening at the front.
+		_add_box(self, p + Vector3(0, 1.7, -3.44), Vector3(8, 3.4, 0.12), wall_mat, true)
+		_add_box(self, p + Vector3(-3.94, 1.7, 0), Vector3(0.12, 3.4, 7), wall_mat, true)
+		_add_box(self, p + Vector3(3.94, 1.7, 0), Vector3(0.12, 3.4, 7), wall_mat, true)
+		_add_box(self, p + Vector3(-2.375, 1.7, 3.44), Vector3(3.25, 3.4, 0.12), wall_mat, true)
+		_add_box(self, p + Vector3(2.375, 1.7, 3.44), Vector3(3.25, 3.4, 0.12), wall_mat, true)
+		_add_box(self, p + Vector3(0, 2.75, 3.44), Vector3(1.5, 1.3, 0.12), wall_mat, true)
 		_add_box(self, p + Vector3(0, 3.9, 0), Vector3(8.8, 0.45, 7.8), roof_mat)
-		_add_box(self, p + Vector3(0, 1.05, 3.56), Vector3(1.35, 2.1, 0.12), _material(Color(0.18, 0.12, 0.09)))
 		_add_box(self, p + Vector3(-2.1, 2.0, 3.57), Vector3(1.15, 1.0, 0.14), _material(Color(0.27, 0.58, 0.72)))
 
 	# Farmland plots and crop rows.
@@ -158,6 +163,9 @@ func _build_world() -> void:
 		add_child(rock)
 
 func _add_tree(pos: Vector3, trunk_mat: Material, leaf_mat: Material) -> void:
+	var tree_body := StaticBody3D.new()
+	tree_body.position = pos
+
 	var trunk := MeshInstance3D.new()
 	var trunk_mesh := CylinderMesh.new()
 	trunk_mesh.top_radius = 0.28
@@ -165,8 +173,16 @@ func _add_tree(pos: Vector3, trunk_mat: Material, leaf_mat: Material) -> void:
 	trunk_mesh.height = 3.4
 	trunk.mesh = trunk_mesh
 	trunk.material_override = trunk_mat
-	trunk.position = pos + Vector3(0, 1.7, 0)
-	add_child(trunk)
+	trunk.position = Vector3(0, 1.7, 0)
+	tree_body.add_child(trunk)
+
+	var trunk_collision := CollisionShape3D.new()
+	var trunk_shape := CylinderShape3D.new()
+	trunk_shape.radius = 0.42
+	trunk_shape.height = 3.4
+	trunk_collision.shape = trunk_shape
+	trunk_collision.position = Vector3(0, 1.7, 0)
+	tree_body.add_child(trunk_collision)
 
 	var crown := MeshInstance3D.new()
 	var crown_mesh := SphereMesh.new()
@@ -174,8 +190,9 @@ func _add_tree(pos: Vector3, trunk_mat: Material, leaf_mat: Material) -> void:
 	crown_mesh.height = 3.7
 	crown.mesh = crown_mesh
 	crown.material_override = leaf_mat
-	crown.position = pos + Vector3(0, 4.0, 0)
-	add_child(crown)
+	crown.position = Vector3(0, 4.0, 0)
+	tree_body.add_child(crown)
+	add_child(tree_body)
 
 func _build_player() -> void:
 	player = CharacterBody3D.new()
