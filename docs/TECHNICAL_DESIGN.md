@@ -31,7 +31,7 @@ The Medium profile uses the mobile GL Compatibility renderer, moderate terrain m
 
 ### Player and UI
 
-The existing third-person CharacterBody3D, touch joystick, camera drag, sprint, jump, pause, basic character appearance panel and schematic map remain in the prototype. Character mesh and animation are explicitly placeholders pending production assets.
+The existing third-person CharacterBody3D, touch joystick, camera drag, sprint, jump, pause, basic character appearance panel and schematic map remain in the prototype. The procedural placeholder character now has pivot-based AnimationPlayer clips for idle, walk, run and jump. It is still not a production skeletal rig; imported glTF character assets and authored animation clips remain a later milestone.
 
 ## Performance budget and validation targets
 
@@ -55,7 +55,7 @@ These are engineering targets, not measured results:
 ## Roadmap
 
 1. Validate generated terrain and Android build.
-2. Replace primitive player with a rigged glTF character and animation state machine.
+2. Replace primitive player with a rigged glTF character and authored animation state machine.
 3. Replace schematic map with a live minimap and explored-world atlas.
 4. Build designed village districts, roads, forest, mountain, river and coast assets.
 5. Add day/night and weather controllers.
