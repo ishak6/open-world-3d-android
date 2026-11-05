@@ -250,9 +250,14 @@ func _load_world_state() -> void:
 	var config := ConfigFile.new()
 	if config.load("user://world.cfg") == OK:
 		var saved_position: Vector3 = config.get_value("world", "player_position", player.global_position)
+		var expected_ground := _world_height(saved_position.x, saved_position.z)
+		# Reject stale/corrupt saves that leave the player far above or below the terrain.
+		if not saved_position.is_finite() or saved_position.y < expected_ground - 3.0 or saved_position.y > expected_ground + 12.0:
+			saved_position = Vector3(32.0, _world_height(32.0, 51.0) + 0.15, 51.0)
 		player.global_position = saved_position
-		time_of_day = float(config.get_value("world", "time_of_day", time_of_day))
-		weather_mode = int(config.get_value("world", "weather_mode", 0)) % 3
+		time_of_day = clampf(float(config.get_value("world", "time_of_day", time_of_day)), 0.0, 1.0)
+		weather_mode = posmod(int(config.get_value("world", "weather_mode", 0)), 3)
+	camera_rig.global_position = player.global_position
 	_update_day_night(0.0)
 	if rain_particles:
 		rain_particles.emitting = weather_mode == 1
