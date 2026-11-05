@@ -11,6 +11,8 @@ const WALK_SPEED := 5.2
 const RUN_SPEED := 8.8
 const LOOK_SENSITIVITY := 0.0042
 const GRAVITY := 18.0
+const GRAPHICS_PROFILE := "MEDIUM"
+const VISUAL_STYLE := "HYBRID"
 
 var player: CharacterBody3D
 var camera_pivot: Node3D
@@ -178,7 +180,7 @@ func _update_chunks(force: bool = false) -> void:
 		loaded_chunks.erase(key)
 
 	if chunk_label:
-		chunk_label.text = "SEED %d  •  CHUNK %d, %d  •  %d LOADED" % [WORLD_SEED, current_chunk.x, current_chunk.y, loaded_chunks.size()]
+		chunk_label.text = "%s  •  SEED %d  •  CHUNK %d, %d  •  %d ACTIVE" % [VISUAL_STYLE, WORLD_SEED, current_chunk.x, current_chunk.y, loaded_chunks.size()]
 
 func _create_chunk(cx: int, cz: int) -> Node3D:
 	var root := Node3D.new()
@@ -551,7 +553,7 @@ func _build_hud() -> void:
 	top_column.add_theme_constant_override("separation", 2)
 	top_panel.add_child(top_column)
 	status_label = Label.new()
-	status_label.text = "VILLAGE FRONTIER  •  OFFLINE"
+	status_label.text = "VILLAGE FRONTIER  •  " + GRAPHICS_PROFILE
 	status_label.add_theme_font_size_override("font_size", 18)
 	status_label.add_theme_color_override("font_color", Color(0.91, 0.96, 1))
 	top_column.add_child(status_label)
