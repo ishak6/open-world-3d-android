@@ -19,7 +19,7 @@ Offline 3D open-world Android exploration game prototype, built with Godot 4.4.1
 - Biomes: grassland, meadow, forest, highland and dryland.
 - Vegetation follows terrain height; trees are batched per chunk with MultiMesh to reduce draw calls.
 - Third-person movement with touch joystick, right-side camera drag, hold-to-run, jump, camera reset and pause.
-- Procedural humanoid placeholder with basic walk/run limb swing.
+- Procedural humanoid placeholder with AnimationPlayer clips for idle, walk, run and jump; limbs rotate from shoulder/hip pivot nodes.
 - Character Studio prototype: skin tone, hair color and shirt color cycling with local appearance save.
 - Schematic exploration map UI.
 - Android-oriented Godot GL Compatibility renderer.
@@ -67,7 +67,7 @@ The workflow uses Godot 4.4.1, matching Android export templates, Java 17 and An
 
 - The player is a primitive-mesh placeholder, not a production-quality rigged character.
 - Character customization changes selected colors only; face shape, hairstyles, body proportions and modeled clothing are not implemented.
-- Walk/run motion is procedural limb rotation, not a full animation library.
+- Character motion uses procedural pivot-based AnimationPlayer clips; it is not a skeletal rig or motion-captured animation library.
 - The map is a schematic panel, not a live surveyed minimap or full world atlas.
 - Terrain is low-resolution procedural height mesh; it is not a detailed sculpted landscape.
 - The starter village is a small prototype; a large designed city, detailed roads, ocean/coastline, interiors and bridges across generated rivers are not complete.
