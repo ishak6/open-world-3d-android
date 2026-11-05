@@ -12,7 +12,7 @@ Offline 3D open-world Android exploration game prototype, built with Godot 4.4.1
 
 - Deterministic world seed: `481516`.
 - 64 m × 64 m world chunks.
-- 5 × 5 active chunk window (25 chunks); chunks outside a 3-chunk distance are unloaded.
+- 5 × 5 active chunk window (25 chunks); chunks outside the 2-chunk active radius are unloaded.
 - Continuous height sampling in global world coordinates, so terrain heights line up at chunk borders.
 - Terrain collision is generated from the same mesh used for rendering.
 - Starter village region is flattened smoothly to preserve houses, paths, bridge and crop plots.
