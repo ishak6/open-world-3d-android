@@ -73,6 +73,8 @@ var time_of_day := 0.32
 var water_material: ShaderMaterial
 var villager_nodes: Array[Node3D] = []
 var villager_phases: Array[float] = []
+var cloud_root: Node3D
+var cloud_clusters: Array[Node3D] = []
 var skin_palette := [Color(0.94, 0.72, 0.55), Color(0.72, 0.48, 0.34), Color(0.40, 0.24, 0.16), Color(0.25, 0.15, 0.11)]
 var outfit_palette := [Color(0.10, 0.34, 0.78), Color(0.12, 0.48, 0.34), Color(0.68, 0.20, 0.16), Color(0.72, 0.52, 0.12), Color(0.18, 0.16, 0.25)]
 var hair_palette := [Color(0.10, 0.065, 0.04), Color(0.30, 0.16, 0.08), Color(0.62, 0.48, 0.28), Color(0.08, 0.08, 0.09)]
@@ -81,6 +83,7 @@ func _ready() -> void:
 	_setup_noise()
 	_build_environment()
 	_build_weather_particles()
+	_build_cloud_layer()
 	_build_player()
 	_load_world_state()
 	_build_hud()
@@ -136,6 +139,31 @@ func _build_environment() -> void:
 	sun_light.directional_shadow_max_distance = 72.0
 	add_child(sun_light)
 	_update_day_night(0.0)
+
+func _build_cloud_layer() -> void:
+	cloud_root = Node3D.new()
+	cloud_root.name = "DynamicCloudLayer"
+	add_child(cloud_root)
+	var cloud_material := StandardMaterial3D.new()
+	cloud_material.albedo_color = Color(0.82, 0.88, 0.92, 0.78)
+	cloud_material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	cloud_material.roughness = 1.0
+	var cloud_mesh := SphereMesh.new()
+	cloud_mesh.radius = 3.4
+	cloud_mesh.height = 2.0
+	var positions := [Vector3(-34, 0, -28), Vector3(-10, 2, 18), Vector3(20, 1, -22), Vector3(42, 0, 25), Vector3(5, 3, 45), Vector3(-48, 1, 38)]
+	for i in range(positions.size()):
+		var cluster := Node3D.new()
+		cluster.position = positions[i]
+		cloud_root.add_child(cluster)
+		for offset in [Vector3.ZERO, Vector3(3.0, 0.35, 0.4), Vector3(-2.8, 0.1, 0.6), Vector3(0.6, 0.45, 2.0)]:
+			var puff := MeshInstance3D.new()
+			puff.mesh = cloud_mesh
+			puff.material_override = cloud_material
+			puff.position = offset
+			puff.scale = Vector3(1.0, 0.48, 0.72)
+			cluster.add_child(puff)
+		cloud_clusters.append(cluster)
 
 func _build_weather_particles() -> void:
 	rain_particles = GPUParticles3D.new()
@@ -227,6 +255,12 @@ func _process(delta: float) -> void:
 		_save_world_state()
 	if rain_particles and player:
 		rain_particles.global_position = player.global_position + Vector3(0, 13, 0)
+	if cloud_root and player:
+		cloud_root.global_position = player.global_position + Vector3(0, 38, 0)
+		for cloud in cloud_clusters:
+			cloud.position.x += delta * 0.55
+			if cloud.position.x > 58.0:
+				cloud.position.x = -58.0
 	for i in range(villager_nodes.size()):
 		if is_instance_valid(villager_nodes[i]):
 			villager_phases[i] += delta
