@@ -40,7 +40,7 @@ func _ready() -> void:
 func _setup_noise() -> void:
 	biome_noise.seed = WORLD_SEED
 	biome_noise.noise_type = FastNoiseLite.TYPE_SIMPLEX_SMOOTH
-	biome_noise.frequency = 0.0017
+	biome_noise.frequency = 0.0032
 	biome_noise.fractal_octaves = 3
 	biome_noise.fractal_lacunarity = 2.0
 	biome_noise.fractal_gain = 0.48
@@ -354,6 +354,7 @@ func _build_player() -> void:
 func _build_hud() -> void:
 	var hud := CanvasLayer.new()
 	hud.layer = 5
+	hud.process_mode = Node.PROCESS_MODE_ALWAYS
 	add_child(hud)
 	var top_panel := PanelContainer.new()
 	top_panel.position = Vector2(18, 16)
