@@ -3,8 +3,10 @@ extends Node3D
 # Village Frontier - streamed procedural world
 const WORLD_SEED := 481516
 const CHUNK_SIZE := 64.0
-const LOAD_RADIUS := 3
-const UNLOAD_RADIUS := 4
+const TERRAIN_RESOLUTION := 16
+const TerrainGenerator = preload("res://scripts/world/terrain_generator.gd")
+const LOAD_RADIUS := 2
+const UNLOAD_RADIUS := 3
 const WALK_SPEED := 5.2
 const RUN_SPEED := 8.8
 const LOOK_SENSITIVITY := 0.0042
@@ -26,6 +28,7 @@ var joystick_active := false
 var current_chunk := Vector2i(999999, 999999)
 var loaded_chunks: Dictionary = {}
 var biome_noise := FastNoiseLite.new()
+var terrain_noise := FastNoiseLite.new()
 var pause_panel: PanelContainer
 var is_paused := false
 var character_visual: Node3D
@@ -63,6 +66,12 @@ func _setup_noise() -> void:
 	biome_noise.fractal_octaves = 3
 	biome_noise.fractal_lacunarity = 2.0
 	biome_noise.fractal_gain = 0.48
+	terrain_noise.seed = WORLD_SEED + 90210
+	terrain_noise.noise_type = FastNoiseLite.TYPE_SIMPLEX_SMOOTH
+	terrain_noise.frequency = 0.006
+	terrain_noise.fractal_octaves = 4
+	terrain_noise.fractal_lacunarity = 2.1
+	terrain_noise.fractal_gain = 0.48
 
 func _material(color: Color, roughness: float = 0.92) -> StandardMaterial3D:
 	var mat := StandardMaterial3D.new()
@@ -96,7 +105,7 @@ func _build_environment() -> void:
 	sun.rotation_degrees = Vector3(-48, -32, 0)
 	sun.light_energy = 1.25
 	sun.shadow_enabled = true
-	sun.directional_shadow_max_distance = 95.0
+	sun.directional_shadow_max_distance = 72.0
 	add_child(sun)
 
 func _chunk_key(cx: int, cz: int) -> String:
@@ -113,6 +122,19 @@ func _biome_at(x: float, z: float) -> String:
 	if value < -0.16:
 		return "meadow"
 	return "grassland"
+
+func _biome_ground_color(biome: String) -> Color:
+	match biome:
+		"highland":
+			return Color(0.39, 0.43, 0.36)
+		"forest":
+			return Color(0.18, 0.37, 0.20)
+		"dryland":
+			return Color(0.62, 0.51, 0.31)
+		"meadow":
+			return Color(0.39, 0.55, 0.28)
+		_:
+			return Color(0.27, 0.48, 0.24)
 
 func _biome_material(biome: String) -> StandardMaterial3D:
 	match biome:
@@ -166,17 +188,26 @@ func _create_chunk(cx: int, cz: int) -> Node3D:
 
 	var biome := _biome_at((float(cx) + 0.5) * CHUNK_SIZE, (float(cz) + 0.5) * CHUNK_SIZE)
 	var ground := StaticBody3D.new()
-	ground.position = Vector3(CHUNK_SIZE * 0.5, -0.55, CHUNK_SIZE * 0.5)
+	ground.name = "TerrainCollision"
 	var ground_mesh := MeshInstance3D.new()
-	var box := BoxMesh.new()
-	box.size = Vector3(CHUNK_SIZE, 1.0, CHUNK_SIZE)
-	ground_mesh.mesh = box
-	ground_mesh.material_override = _biome_material(biome)
+	ground_mesh.name = "TerrainSurface"
+	var ground_material := StandardMaterial3D.new()
+	ground_material.vertex_color_use_as_albedo = true
+	ground_material.roughness = 1.0
+	ground_mesh.mesh = TerrainGenerator.build_chunk_mesh(
+		terrain_noise,
+		Vector2(cx * CHUNK_SIZE, cz * CHUNK_SIZE),
+		CHUNK_SIZE,
+		TERRAIN_RESOLUTION,
+		_biome_ground_color(biome),
+		Vector2(32.0, 32.0),
+		72.0,
+		96.0
+	)
+	ground_mesh.material_override = ground_material
 	ground.add_child(ground_mesh)
 	var collision := CollisionShape3D.new()
-	var shape := BoxShape3D.new()
-	shape.size = Vector3(CHUNK_SIZE, 1.0, CHUNK_SIZE)
-	collision.shape = shape
+	collision.shape = ground_mesh.mesh.create_trimesh_shape()
 	ground.add_child(collision)
 	root.add_child(ground)
 
@@ -409,6 +440,8 @@ func _build_player() -> void:
 	player.add_child(camera_pivot)
 	camera = Camera3D.new()
 	camera.position = Vector3(0, 1.0, 5.8)
+	camera.fov = 72.0
+	camera.far = 360.0
 	camera.rotation_degrees.x = -11
 	camera.current = true
 	camera_pivot.add_child(camera)
