@@ -29,6 +29,11 @@ jobs:
           yes | sdkmanager --licenses
           sdkmanager "platform-tools" "platforms;android-35" "build-tools;35.0.0"
 
+      - name: Install download tools
+        run: |
+          apt-get update
+          apt-get install -y curl unzip
+
       - name: Install matching Godot Android export templates
         run: |
           mkdir -p "$HOME/.local/share/godot/export_templates/4.4.1.stable"
