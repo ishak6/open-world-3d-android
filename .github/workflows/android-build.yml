@@ -81,6 +81,9 @@ jobs:
       - name: Import project resources
         run: godot --headless --path . --editor --import --quit
 
+      - name: Smoke test the main scene
+        run: timeout 60s godot --headless --path . --quit-after 10
+
       - name: Export Android APK
         run: |
           timeout 20m godot --headless --path . --verbose --export-debug "Android" build/VillageFrontier-debug.apk
