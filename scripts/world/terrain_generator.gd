@@ -30,6 +30,7 @@ static func build_chunk_mesh(noise: FastNoiseLite, chunk_origin: Vector2, chunk_
 			_add_vertex(surface, p10, base_color, chunk_size)
 			_add_vertex(surface, p01, base_color, chunk_size)
 			_add_vertex(surface, p11, base_color, chunk_size)
+	surface.index()
 	surface.generate_normals()
 	return surface.commit()
 
