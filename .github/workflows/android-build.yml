@@ -44,12 +44,11 @@ jobs:
             -o /tmp/godot_export_templates.tpz
           mkdir -p /tmp/godot_export_templates
           unzip -q /tmp/godot_export_templates.tpz -d /tmp/godot_export_templates
-          install -m 0644 /tmp/godot_export_templates/templates/android_source.zip "$TEMPLATE_DIR/android_source.zip"
           install -m 0644 /tmp/godot_export_templates/templates/android_debug.apk "$TEMPLATE_DIR/android_debug.apk"
           install -m 0644 /tmp/godot_export_templates/templates/android_release.apk "$TEMPLATE_DIR/android_release.apk"
           printf "4.4.1.stable" > "$TEMPLATE_DIR/version.txt"
-          test -s "$TEMPLATE_DIR/android_source.zip"
           test -s "$TEMPLATE_DIR/android_debug.apk"
+          test -s "$TEMPLATE_DIR/android_release.apk"
 
       - name: Configure Godot Android export
         run: |
@@ -73,11 +72,6 @@ jobs:
 
       - name: Import project resources
         run: godot --headless --path . --editor --import --quit
-
-      - name: Install project Android build template
-        run: |
-          godot --headless --path . --install-android-build-template
-          test -d android/build
 
       - name: Export debug APK
         run: godot --headless --path . --verbose --export-debug "Android" build/VillageFrontier-debug.apk
