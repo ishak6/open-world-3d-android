@@ -32,6 +32,7 @@ var character_visual: Node3D
 var character_skin: StandardMaterial3D
 var character_shirt: StandardMaterial3D
 var character_pants: StandardMaterial3D
+var character_hair: StandardMaterial3D
 var left_arm: MeshInstance3D
 var right_arm: MeshInstance3D
 var left_leg: MeshInstance3D
@@ -364,6 +365,7 @@ func _build_player() -> void:
 	character_skin = skin_mat
 	character_shirt = shirt_mat
 	character_pants = pants_mat
+	character_hair = hair_mat
 
 	var torso := CapsuleMesh.new()
 	torso.radius = 0.36
@@ -421,6 +423,7 @@ func _load_character_appearance() -> void:
 			config.get_value("appearance", "shirt", Color(0.10, 0.34, 0.78)),
 			config.get_value("appearance", "pants", Color(0.10, 0.14, 0.22))
 		)
+		character_hair.albedo_color = config.get_value("appearance", "hair", Color(0.10, 0.065, 0.04))
 
 func _apply_character_colors(skin: Color, shirt: Color, pants: Color) -> void:
 	character_skin.albedo_color = skin
@@ -432,6 +435,7 @@ func _save_character_appearance() -> void:
 	config.set_value("appearance", "skin", character_skin.albedo_color)
 	config.set_value("appearance", "shirt", character_shirt.albedo_color)
 	config.set_value("appearance", "pants", character_pants.albedo_color)
+	config.set_value("appearance", "hair", character_hair.albedo_color)
 	config.save("user://character.cfg")
 
 func _cycle_skin() -> void:
@@ -446,9 +450,7 @@ func _cycle_outfit() -> void:
 
 func _cycle_hair() -> void:
 	hair_index = (hair_index + 1) % hair_palette.size()
-	var hair_piece := character_visual.get_node_or_null("Hair") as MeshInstance3D
-	if hair_piece:
-		hair_piece.material_override = _material(hair_palette[hair_index])
+	character_hair.albedo_color = hair_palette[hair_index]
 	_save_character_appearance()
 
 func _build_hud() -> void:
