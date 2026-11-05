@@ -38,6 +38,9 @@ var character_skin: StandardMaterial3D
 var character_shirt: StandardMaterial3D
 var character_pants: StandardMaterial3D
 var character_hair: StandardMaterial3D
+var character_head: MeshInstance3D
+var character_hair_top: MeshInstance3D
+var character_hair_sides: Array[MeshInstance3D] = []
 var left_arm: MeshInstance3D
 var right_arm: MeshInstance3D
 var left_leg: MeshInstance3D
@@ -55,6 +58,10 @@ var player_marker: ColorRect
 var skin_index := 0
 var outfit_index := 0
 var hair_index := 0
+var hair_style_index := 0
+var face_shape_index := 0
+var pants_index := 0
+var pants_palette := [Color(0.10, 0.14, 0.22), Color(0.22, 0.24, 0.28), Color(0.30, 0.20, 0.12), Color(0.08, 0.22, 0.20)]
 var world_environment: WorldEnvironment
 var sky_material: ProceduralSkyMaterial
 var sun_light: DirectionalLight3D
@@ -643,11 +650,17 @@ func _build_player() -> void:
 	var head := SphereMesh.new()
 	head.radius = 0.27
 	head.height = 0.56
-	_make_piece(character_visual, "Head", head, Vector3(0, 1.88, 0), skin_mat)
+	character_head = _make_piece(character_visual, "Head", head, Vector3(0, 1.88, 0), skin_mat)
 	var hair := SphereMesh.new()
 	hair.radius = 0.285
 	hair.height = 0.30
-	_make_piece(character_visual, "Hair", hair, Vector3(0, 2.08, 0), hair_mat)
+	character_hair_top = _make_piece(character_visual, "Hair", hair, Vector3(0, 2.08, 0), hair_mat)
+	var side_hair_mesh := CapsuleMesh.new()
+	side_hair_mesh.radius = 0.075
+	side_hair_mesh.height = 0.28
+	var side_left := _make_piece(character_visual, "HairSideLeft", side_hair_mesh, Vector3(-0.235, 1.94, 0), hair_mat)
+	var side_right := _make_piece(character_visual, "HairSideRight", side_hair_mesh, Vector3(0.235, 1.94, 0), hair_mat)
+	character_hair_sides = [side_left, side_right]
 	var eye_mesh := SphereMesh.new()
 	eye_mesh.radius = 0.027
 	eye_mesh.height = 0.045
@@ -740,6 +753,11 @@ func _load_character_appearance() -> void:
 			config.get_value("appearance", "pants", Color(0.10, 0.14, 0.22))
 		)
 		character_hair.albedo_color = config.get_value("appearance", "hair", Color(0.10, 0.065, 0.04))
+		hair_style_index = int(config.get_value("appearance", "hair_style", 0))
+		face_shape_index = int(config.get_value("appearance", "face_shape", 0))
+		pants_index = int(config.get_value("appearance", "pants_index", 0))
+		_apply_hair_style()
+		_apply_face_shape()
 
 func _apply_character_colors(skin: Color, shirt: Color, pants: Color) -> void:
 	character_skin.albedo_color = skin
@@ -752,7 +770,39 @@ func _save_character_appearance() -> void:
 	config.set_value("appearance", "shirt", character_shirt.albedo_color)
 	config.set_value("appearance", "pants", character_pants.albedo_color)
 	config.set_value("appearance", "hair", character_hair.albedo_color)
+	config.set_value("appearance", "hair_style", hair_style_index)
+	config.set_value("appearance", "face_shape", face_shape_index)
+	config.set_value("appearance", "pants_index", pants_index)
 	config.save("user://character.cfg")
+
+func _apply_hair_style() -> void:
+	if character_hair_top == null:
+		return
+	var styles := [Vector3(1.0, 1.0, 1.0), Vector3(1.15, 0.68, 1.0), Vector3(0.82, 1.25, 0.9), Vector3(1.05, 0.82, 1.18)]
+	character_hair_top.scale = styles[hair_style_index % styles.size()]
+	for i in range(character_hair_sides.size()):
+		character_hair_sides[i].visible = hair_style_index != 1
+
+func _cycle_hair_style() -> void:
+	hair_style_index = (hair_style_index + 1) % 4
+	_apply_hair_style()
+	_save_character_appearance()
+
+func _apply_face_shape() -> void:
+	if character_head == null:
+		return
+	var shapes := [Vector3.ONE, Vector3(1.12, 0.92, 0.96), Vector3(0.92, 1.08, 1.04)]
+	character_head.scale = shapes[face_shape_index % shapes.size()]
+
+func _cycle_face_shape() -> void:
+	face_shape_index = (face_shape_index + 1) % 3
+	_apply_face_shape()
+	_save_character_appearance()
+
+func _cycle_pants() -> void:
+	pants_index = (pants_index + 1) % pants_palette.size()
+	character_pants.albedo_color = pants_palette[pants_index]
+	_save_character_appearance()
 
 func _cycle_skin() -> void:
 	skin_index = (skin_index + 1) % skin_palette.size()
@@ -903,7 +953,7 @@ func _build_creator_and_map(hud: CanvasLayer) -> void:
 	creator_panel.visible = false
 	creator_panel.set_anchors_preset(Control.PRESET_CENTER)
 	creator_panel.position = Vector2(-210, -190)
-	creator_panel.custom_minimum_size = Vector2(420, 380)
+creator_panel.custom_minimum_size = Vector2(420, 470)
 	creator_panel.add_theme_stylebox_override("panel", _panel_style(Color(0.025, 0.07, 0.10, 0.97)))
 	hud.add_child(creator_panel)
 	var creator_box := VBoxContainer.new()
@@ -925,9 +975,18 @@ func _build_creator_and_map(hud: CanvasLayer) -> void:
 	var hair_button := _make_button("HAIR COLOR  •  CHANGE", Vector2.ZERO, Vector2(370, 48))
 	creator_box.add_child(hair_button)
 	hair_button.pressed.connect(_cycle_hair)
-	var outfit_button := _make_button("SHIRT COLOR  •  CHANGE", Vector2.ZERO, Vector2(370, 48))
+	var hair_style_button := _make_button("HAIRSTYLE  •  CHANGE", Vector2.ZERO, Vector2(370, 42))
+	creator_box.add_child(hair_style_button)
+	hair_style_button.pressed.connect(_cycle_hair_style)
+	var face_button := _make_button("FACE SHAPE  •  CHANGE", Vector2.ZERO, Vector2(370, 42))
+	creator_box.add_child(face_button)
+	face_button.pressed.connect(_cycle_face_shape)
+	var outfit_button := _make_button("SHIRT COLOR  •  CHANGE", Vector2.ZERO, Vector2(370, 42))
 	creator_box.add_child(outfit_button)
 	outfit_button.pressed.connect(_cycle_outfit)
+	var pants_button := _make_button("TROUSER COLOR  •  CHANGE", Vector2.ZERO, Vector2(370, 42))
+	creator_box.add_child(pants_button)
+	pants_button.pressed.connect(_cycle_pants)
 	var close_creator := _make_button("DONE", Vector2.ZERO, Vector2(370, 46))
 	creator_box.add_child(close_creator)
 	close_creator.pressed.connect(func(): creator_panel.visible = false)
