@@ -20,8 +20,10 @@ Offline 3D open-world Android exploration game prototype, built with Godot 4.4.1
 - Vegetation follows terrain height; trees are batched per chunk with MultiMesh to reduce draw calls.
 - Third-person movement with touch joystick, right-side camera drag, hold-to-run, jump, camera reset and pause.
 - Procedural humanoid placeholder with AnimationPlayer clips for idle, walk, run and jump; limbs rotate from shoulder/hip pivot nodes.
-- Character Studio prototype: skin tone, hair color and shirt color cycling with local appearance save.
+- Character Studio prototype: skin tone, face-shape presets, hairstyle presets, hair color, shirt color and trouser color with local appearance save.
 - Schematic exploration map UI.
+- Local world-state autosave for player position, day-cycle time and weather mode (15-second interval).
+- Expanded village with gable roofs, doors, windows, chimneys, street lamps and three decorative resident prototypes.
 - Android-oriented Godot GL Compatibility renderer.
 - Runtime day/night cycle with changing sun energy, sky colors and ambient light.
 - Weather selector: clear, rain (local GPU rain particles) and mist/fog.
@@ -72,7 +74,7 @@ The workflow uses Godot 4.4.1, matching Android export templates, Java 17 and An
 ## Known limitations — not yet complete
 
 - The player is a primitive-mesh placeholder, not a production-quality rigged character.
-- Character customization changes selected colors only; face shape, hairstyles, body proportions and modeled clothing are not implemented.
+- Character customization uses a few primitive-mesh face/hairstyle presets and material colors; detailed face sculpting, body proportions and modeled clothing slots are not implemented.
 - Character motion uses procedural pivot-based AnimationPlayer clips; it is not a skeletal rig or motion-captured animation library.
 - The map is a schematic panel, not a live surveyed minimap or full world atlas.
 - Terrain is low-resolution procedural height mesh; it is not a detailed sculpted landscape.
@@ -80,7 +82,7 @@ The workflow uses Godot 4.4.1, matching Android export templates, Java 17 and An
 - Village residents are decorative idle prototypes without navigation, dialogue or schedules.
 - Rain is a local visual particle effect; there is no wet-surface simulation, thunder audio or puddle system.
 - Water has animated surface shading but no swimming, buoyancy, current simulation or water physics.
-- NPC AI, animals, vehicles, missions, inventory gameplay, world save/load, audio and swimming are not complete.
+- NPC AI, dialogue, schedules, animals, vehicles, missions, inventory gameplay, world-object persistence, audio and swimming are not complete. Only player position, time and weather are autosaved.
 - Physical Android device tests are still required for touch layout, thermal behavior, memory and sustained FPS.
 
 ## Project structure
