@@ -836,7 +836,8 @@ func _build_player() -> void:
 	camera.position = Vector3(0, 1.0, 5.8)
 	camera.fov = 72.0
 	camera.far = 360.0
-	camera.rotation_degrees.x = -11
+	camera.rotation_degrees.x = 12
+	# Positive X pitch points the camera down toward the player and terrain.
 	camera.current = true
 	camera_pivot.add_child(camera)
 	camera_rig.global_position = player.global_position
