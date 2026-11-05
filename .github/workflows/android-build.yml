@@ -91,8 +91,17 @@ jobs:
 
       - name: Verify APK output
         run: |
-          test -s build/VillageFrontier-debug.apk
-          file build/VillageFrontier-debug.apk
+          set -eu
+          APK="build/VillageFrontier-debug.apk"
+          test -s "$APK"
+          unzip -t "$APK"
+          unzip -Z1 "$APK" | grep -qx "AndroidManifest.xml"
+          unzip -Z1 "$APK" | grep -qx "lib/arm64-v8a/libgodot_android.so"
+          APKSIGNER="$(find "$ANDROID_HOME/build-tools" -type f -name apksigner | sort -V | tail -n 1)"
+          test -n "$APKSIGNER"
+          test -x "$APKSIGNER"
+          "$APKSIGNER" verify --verbose "$APK"
+          ls -lh "$APK"
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
