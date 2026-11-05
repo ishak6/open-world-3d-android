@@ -63,6 +63,8 @@ var weather_button: Button
 var weather_mode := 0 # 0 clear, 1 rain, 2 mist
 var time_of_day := 0.32
 var water_material: ShaderMaterial
+var villager_nodes: Array[Node3D] = []
+var villager_phases: Array[float] = []
 var skin_palette := [Color(0.94, 0.72, 0.55), Color(0.72, 0.48, 0.34), Color(0.40, 0.24, 0.16), Color(0.25, 0.15, 0.11)]
 var outfit_palette := [Color(0.10, 0.34, 0.78), Color(0.12, 0.48, 0.34), Color(0.68, 0.20, 0.16), Color(0.72, 0.52, 0.12), Color(0.18, 0.16, 0.25)]
 var hair_palette := [Color(0.10, 0.065, 0.04), Color(0.30, 0.16, 0.08), Color(0.62, 0.48, 0.28), Color(0.08, 0.08, 0.09)]
@@ -191,6 +193,11 @@ func _process(delta: float) -> void:
 	_update_day_night(delta)
 	if rain_particles and player:
 		rain_particles.global_position = player.global_position + Vector3(0, 13, 0)
+	for i in range(villager_nodes.size()):
+		if is_instance_valid(villager_nodes[i]):
+			villager_phases[i] += delta
+			villager_nodes[i].rotation.y = sin(villager_phases[i] * 0.35) * 0.12
+			villager_nodes[i].position.y = sin(villager_phases[i] * 1.8) * 0.025
 
 func _chunk_key(cx: int, cz: int) -> String:
 	return str(cx) + ":" + str(cz)
@@ -516,8 +523,26 @@ func _build_starter_village(root: Node3D) -> void:
 		_add_box(root, p + Vector3(-2.375, 1.7, 3.44), Vector3(3.25, 3.4, 0.12), wall, true)
 		_add_box(root, p + Vector3(2.375, 1.7, 3.44), Vector3(3.25, 3.4, 0.12), wall, true)
 		_add_box(root, p + Vector3(0, 2.75, 3.44), Vector3(1.5, 1.3, 0.12), wall, true)
-		_add_box(root, p + Vector3(0, 3.9, 0), Vector3(8.8, 0.45, 7.8), roof_mat)
+		var gable_roof := MeshInstance3D.new()
+		var gable_mesh := PrismMesh.new()
+		gable_mesh.size = Vector3(8.9, 1.7, 7.9)
+		gable_roof.mesh = gable_mesh
+		gable_roof.position = p + Vector3(0, 4.25, 0)
+		gable_roof.material_override = roof_mat
+		root.add_child(gable_roof)
+		_add_box(root, p + Vector3(0, 1.28, 3.56), Vector3(1.35, 2.55, 0.16), _material(Color(0.31, 0.19, 0.11)))
 		_add_box(root, p + Vector3(-2.1, 2.0, 3.57), Vector3(1.15, 1.0, 0.14), _material(Color(0.27, 0.58, 0.72)))
+		_add_box(root, p + Vector3(2.1, 2.0, 3.57), Vector3(1.15, 1.0, 0.14), _material(Color(0.27, 0.58, 0.72)))
+		_add_box(root, p + Vector3(-4.02, 2.05, -1.45), Vector3(0.12, 0.95, 1.25), _material(Color(0.27, 0.58, 0.72)))
+		_add_box(root, p + Vector3(4.02, 2.05, -1.45), Vector3(0.12, 0.95, 1.25), _material(Color(0.27, 0.58, 0.72)))
+		_add_box(root, p + Vector3(-1.8, 0.12, 4.25), Vector3(2.3, 0.22, 1.2), path_mat)
+		var chimney := MeshInstance3D.new()
+		var chimney_mesh := BoxMesh.new()
+		chimney_mesh.size = Vector3(0.75, 2.0, 0.75)
+		chimney.mesh = chimney_mesh
+		chimney.position = p + Vector3(2.7, 4.8, -1.8)
+		chimney.material_override = _material(Color(0.38, 0.31, 0.27))
+		root.add_child(chimney)
 	var soil := _material(Color(0.37, 0.25, 0.13))
 	var crop := _material(Color(0.42, 0.63, 0.22))
 	for plot in range(3):
@@ -526,6 +551,64 @@ func _build_starter_village(root: Node3D) -> void:
 		for row in range(5):
 			for plant in range(8):
 				_add_cylinder(root, plot_pos + Vector3(-8 + plant * 2.2, 0.55, -3.4 + row * 1.6), 0.13, 1.0, crop)
+	_spawn_villagers(root)
+	_build_village_lamps(root)
+
+func _build_village_lamps(root: Node3D) -> void:
+	var wood := _material(Color(0.20, 0.16, 0.12))
+	var glow := StandardMaterial3D.new()
+	glow.albedo_color = Color(1.0, 0.72, 0.32)
+	glow.emission_enabled = true
+	glow.emission = Color(1.0, 0.48, 0.12)
+	glow.emission_energy_multiplier = 1.4
+	for pos in [Vector3(25, 0, 17), Vector3(39, 0, 25), Vector3(25, 0, 39), Vector3(52, 0, 34)]:
+		_add_cylinder(root, pos + Vector3(0, 2.1, 0), 0.09, 4.2, wood)
+		var lamp := MeshInstance3D.new()
+		var globe := SphereMesh.new()
+		globe.radius = 0.22
+		globe.height = 0.44
+		lamp.mesh = globe
+		lamp.position = pos + Vector3(0, 4.25, 0)
+		lamp.material_override = glow
+		root.add_child(lamp)
+
+func _spawn_villagers(root: Node3D) -> void:
+	var outfits := [Color(0.68, 0.24, 0.16), Color(0.16, 0.36, 0.58), Color(0.24, 0.48, 0.27)]
+	var positions := [Vector3(29, 0, 25), Vector3(43, 0, 35), Vector3(12, 0, 26)]
+	for i in range(positions.size()):
+		var npc := Node3D.new()
+		npc.name = "VillageResident_%d" % i
+		npc.position = positions[i]
+		root.add_child(npc)
+		var skin := _material([Color(0.78, 0.56, 0.40), Color(0.52, 0.34, 0.24), Color(0.90, 0.69, 0.52)][i])
+		var clothes := _material(outfits[i])
+		var pants := _material(Color(0.12, 0.15, 0.20))
+		var torso_mesh := CapsuleMesh.new()
+		torso_mesh.radius = 0.31
+		torso_mesh.height = 0.82
+		_make_piece(npc, "Body", torso_mesh, Vector3(0, 1.1, 0), clothes)
+		var head_mesh := SphereMesh.new()
+		head_mesh.radius = 0.24
+		head_mesh.height = 0.48
+		_make_piece(npc, "Head", head_mesh, Vector3(0, 1.82, 0), skin)
+		var hair_mesh := SphereMesh.new()
+		hair_mesh.radius = 0.25
+		hair_mesh.height = 0.20
+		_make_piece(npc, "Hair", hair_mesh, Vector3(0, 2.0, 0), _material(Color(0.10, 0.07, 0.05)))
+		var leg_mesh := CapsuleMesh.new()
+		leg_mesh.radius = 0.11
+		leg_mesh.height = 0.72
+		_make_piece(npc, "LeftLeg", leg_mesh, Vector3(-0.13, 0.42, 0), pants)
+		_make_piece(npc, "RightLeg", leg_mesh, Vector3(0.13, 0.42, 0), pants)
+		var arm_mesh := CapsuleMesh.new()
+		arm_mesh.radius = 0.085
+		arm_mesh.height = 0.66
+		var left := _make_piece(npc, "LeftArm", arm_mesh, Vector3(-0.36, 1.12, 0), skin)
+		var right := _make_piece(npc, "RightArm", arm_mesh, Vector3(0.36, 1.12, 0), skin)
+		left.rotation.z = -0.12
+		right.rotation.z = 0.12
+		villager_nodes.append(npc)
+		villager_phases.append(float(i) * 1.7)
 
 func _make_piece(parent: Node3D, piece_name: String, mesh: Mesh, pos: Vector3, mat: Material) -> MeshInstance3D:
 	var piece := MeshInstance3D.new()
