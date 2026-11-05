@@ -24,16 +24,56 @@ jobs:
           java -version
           mkdir -p build
 
-      - name: Ensure Android SDK platform is installed
+      - name: Install Android SDK components
         run: |
           yes | sdkmanager --licenses
-          sdkmanager "platforms;android-35" "build-tools;35.0.0"
+          sdkmanager "platform-tools" "platforms;android-35" "build-tools;35.0.0"
+
+      - name: Install matching Godot Android export templates
+        run: |
+          mkdir -p "$HOME/.local/share/godot/export_templates/4.4.1.stable"
+          curl -fL --retry 3 \
+            "https://github.com/godotengine/godot/releases/download/4.4.1-stable/Godot_v4.4.1-stable_export_templates.tpz" \
+            -o /tmp/godot_export_templates.tpz
+          mkdir -p /tmp/godot_export_templates
+          unzip -q /tmp/godot_export_templates.tpz -d /tmp/godot_export_templates
+          cp /tmp/godot_export_templates/templates/android_source.zip "$HOME/.local/share/godot/export_templates/4.4.1.stable/"
+          cp /tmp/godot_export_templates/templates/android_debug.apk "$HOME/.local/share/godot/export_templates/4.4.1.stable/"
+          cp /tmp/godot_export_templates/templates/android_release.apk "$HOME/.local/share/godot/export_templates/4.4.1.stable/"
+          printf "4.4.1.stable" > "$HOME/.local/share/godot/export_templates/4.4.1.stable/version.txt"
+
+      - name: Configure Godot Android export
+        run: |
+          mkdir -p "$HOME/.config/godot" "$HOME/.android"
+          keytool -genkeypair -v -keystore "$HOME/.android/debug.keystore" \
+            -storepass android -alias androiddebugkey -keypass android \
+            -keyalg RSA -keysize 2048 -validity 10000 \
+            -dname "CN=Android Debug,O=Android,C=US"
+          cat > "$HOME/.config/godot/editor_settings-4.4.tres" <<EOF
+          config_version=5
+
+          [export]
+          android/java_sdk_path="/usr/lib/jvm/java-17-openjdk-amd64"
+          android/android_sdk_path="/usr/lib/android-sdk"
+          android/debug_keystore="$HOME/.android/debug.keystore"
+          EOF
+        env:
+          GODOT_ANDROID_KEYSTORE_DEBUG_PATH: ${{ env.HOME }}/.android/debug.keystore
+          GODOT_ANDROID_KEYSTORE_DEBUG_USER: androiddebugkey
+          GODOT_ANDROID_KEYSTORE_DEBUG_PASSWORD: android
 
       - name: Import project resources
         run: godot --headless --path . --editor --import
 
       - name: Export debug APK
         run: godot --headless --path . --verbose --export-debug "Android" build/VillageFrontier-debug.apk
+        env:
+          GODOT_ANDROID_KEYSTORE_DEBUG_PATH: ${{ env.HOME }}/.android/debug.keystore
+          GODOT_ANDROID_KEYSTORE_DEBUG_USER: androiddebugkey
+          GODOT_ANDROID_KEYSTORE_DEBUG_PASSWORD: android
+
+      - name: Verify APK output
+        run: test -s build/VillageFrontier-debug.apk
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
