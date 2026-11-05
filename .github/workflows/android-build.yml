@@ -8,6 +8,10 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: village-frontier-android-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   android:
     name: Export Godot Android APK
