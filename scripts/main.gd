@@ -312,10 +312,10 @@ func _unhandled_input(event: InputEvent) -> void:
 		elif not event.pressed and event.index == look_finger:
 			look_finger = -1
 	elif event is InputEventScreenDrag and event.index == look_finger:
-		var delta := event.position - look_last
+		var look_delta: Vector2 = event.position - look_last
 		look_last = event.position
-		camera_pivot.rotate_y(-delta.x * LOOK_SENSITIVITY)
-		camera_pivot.rotation.x = clamp(camera_pivot.rotation.x - delta.y * LOOK_SENSITIVITY, -0.9, 0.45)
+		camera_pivot.rotate_y(-look_delta.x * LOOK_SENSITIVITY)
+		camera_pivot.rotation.x = clamp(camera_pivot.rotation.x - look_delta.y * LOOK_SENSITIVITY, -0.9, 0.45)
 	elif event is InputEventKey and event.pressed and event.keycode == KEY_ESCAPE:
 		Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 
