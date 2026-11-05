@@ -1,16 +1,35 @@
 # Village Frontier
 
-Offline 3D open-world exploration prototype for Android, built with Godot 4.4.1.
+Offline 3D open-world Android exploration game prototype, built with Godot 4.4.1.
 
-## Current prototype
+## Current build features
 
-- Procedurally generated village, grassland, river, bridge, forest and crop fields.
-- Third-person player controller.
-- Touch joystick, camera-look drag, run and jump controls.
-- Keyboard movement for desktop testing.
-- Android arm64 debug APK exported by GitHub Actions.
+- Deterministic, seed-based procedural world streaming.
+- 64 m × 64 m terrain chunks; 7 × 7 active area around the player (49 chunks).
+- Distant chunks unload and regenerate from the same seed and coordinates.
+- Biome regions: grassland, meadow, forest, highland and dryland.
+- Starter village preserved near spawn: houses, paths, river visual, bridge and crop plots.
+- Third-person movement with touch joystick, right-side camera drag, hold-to-run, jump, camera reset and pause.
+- Desktop keyboard movement and right-mouse camera control.
+- Android-oriented Godot GL Compatibility renderer.
 
-## Build
+## World streaming
+
+The world is generated offline from seed `481516`. Chunk coordinates determine biome and vegetation placement, so revisiting an area recreates the same layout. Only nearby chunks remain active. This supports effectively unbounded exploration in any direction, limited by device performance and memory; it does not keep infinite terrain in memory.
+
+Chunk size is 64 metres. The game loads a 7 × 7 region around the player and unloads chunks beyond a 4-chunk distance. Terrain is currently flat per chunk; biome materials, vegetation and landmark meshes provide environmental variety. The river is visual only, not a swimming system.
+
+## Controls
+
+- Left virtual joystick: move.
+- Drag on the right half of the screen: rotate camera.
+- RUN: hold to sprint.
+- JUMP: jump.
+- CAM: reset camera.
+- Top-right pause button: pause/resume.
+- Desktop: arrow keys, right mouse drag, Space to jump, Shift to run, Escape to pause.
+
+## Build Android APK
 
 1. Open the **Actions** tab.
 2. Select **Build Android APK**.
@@ -18,7 +37,7 @@ Offline 3D open-world exploration prototype for Android, built with Godot 4.4.1.
 4. Wait for all steps to pass.
 5. Download the `VillageFrontier-Android-debug` artifact from the successful run.
 
-The workflow uses Godot 4.4.1, matching official Android export templates, Java 17 and the Android SDK. It validates APK archive integrity, required Android files and APK signing before uploading the artifact.
+The workflow uses Godot 4.4.1, matching official Android export templates, Java 17 and Android SDK 35. It runs a headless main-scene smoke test, validates the APK archive and ARM64 native library, and verifies APK signing.
 
 ## Android package
 
@@ -27,15 +46,15 @@ The workflow uses Godot 4.4.1, matching official Android export templates, Java 
 - ABI: `arm64-v8a`
 - Build type: debug-signed APK
 
-## Known prototype limitations
+## Current limitations
 
-This is an early playable prototype, not a finished open-world game. NPCs, missions, inventory, save/load, vehicles, player animation, audio, minimap, pause/settings screens and interior interactions are not implemented yet. The river currently has visual geometry only and should not be treated as a swimming system.
+This is an expanded prototype, not a finished commercial open-world game. True heightmap terrain, NPCs, missions, inventory, save/load, vehicles, player animations, sound, minimap, swimming and interior interactions are not implemented. Device-specific frame-rate and touch testing still needs to be performed on a physical Android phone.
 
 ## Project structure
 
 - `project.godot` — engine and application settings.
 - `export_presets.cfg` — Android export configuration.
 - `scenes/main.tscn` — main scene.
-- `scripts/main.gd` — procedural world, player, camera and touch UI.
+- `scripts/main.gd` — procedural chunk streaming, biome scenery, player and touch UI.
 - `.github/workflows/android-build.yml` — automated Android build and APK verification.
 - `assets/icon.svg` — application icon source.
