@@ -55,6 +55,14 @@ var player_marker: ColorRect
 var skin_index := 0
 var outfit_index := 0
 var hair_index := 0
+var world_environment: WorldEnvironment
+var sky_material: ProceduralSkyMaterial
+var sun_light: DirectionalLight3D
+var rain_particles: GPUParticles3D
+var weather_button: Button
+var weather_mode := 0 # 0 clear, 1 rain, 2 mist
+var time_of_day := 0.32
+var water_material: ShaderMaterial
 var skin_palette := [Color(0.94, 0.72, 0.55), Color(0.72, 0.48, 0.34), Color(0.40, 0.24, 0.16), Color(0.25, 0.15, 0.11)]
 var outfit_palette := [Color(0.10, 0.34, 0.78), Color(0.12, 0.48, 0.34), Color(0.68, 0.20, 0.16), Color(0.72, 0.52, 0.12), Color(0.18, 0.16, 0.25)]
 var hair_palette := [Color(0.10, 0.065, 0.04), Color(0.30, 0.16, 0.08), Color(0.62, 0.48, 0.28), Color(0.08, 0.08, 0.09)]
@@ -62,6 +70,7 @@ var hair_palette := [Color(0.10, 0.065, 0.04), Color(0.30, 0.16, 0.08), Color(0.
 func _ready() -> void:
 	_setup_noise()
 	_build_environment()
+	_build_weather_particles()
 	_build_player()
 	_build_hud()
 	_update_chunks(true)
@@ -88,11 +97,11 @@ func _material(color: Color, roughness: float = 0.92) -> StandardMaterial3D:
 	return mat
 
 func _build_environment() -> void:
-	var world_env := WorldEnvironment.new()
+	world_environment = WorldEnvironment.new()
 	var environment := Environment.new()
 	environment.background_mode = Environment.BG_SKY
 	var sky := Sky.new()
-	var sky_material := ProceduralSkyMaterial.new()
+	sky_material = ProceduralSkyMaterial.new()
 	sky_material.sky_top_color = Color(0.075, 0.20, 0.39)
 	sky_material.sky_horizon_color = Color(0.62, 0.78, 0.88)
 	sky_material.ground_bottom_color = Color(0.16, 0.20, 0.15)
@@ -106,15 +115,82 @@ func _build_environment() -> void:
 	environment.fog_enabled = true
 	environment.fog_light_color = Color(0.62, 0.73, 0.79)
 	environment.fog_density = 0.0018
-	world_env.environment = environment
-	add_child(world_env)
+	world_environment.environment = environment
+	add_child(world_environment)
 
-	var sun := DirectionalLight3D.new()
-	sun.rotation_degrees = Vector3(-48, -32, 0)
-	sun.light_energy = 1.25
-	sun.shadow_enabled = true
-	sun.directional_shadow_max_distance = 72.0
-	add_child(sun)
+	sun_light = DirectionalLight3D.new()
+	sun_light.rotation_degrees = Vector3(-48, -32, 0)
+	sun_light.light_energy = 1.25
+	sun_light.shadow_enabled = true
+	sun_light.directional_shadow_max_distance = 72.0
+	add_child(sun_light)
+	_update_day_night(0.0)
+
+func _build_weather_particles() -> void:
+	rain_particles = GPUParticles3D.new()
+	rain_particles.name = "LocalRain"
+	rain_particles.amount = 420
+	rain_particles.lifetime = 1.25
+	rain_particles.emitting = false
+	rain_particles.visibility_aabb = AABB(Vector3(-20, -18, -20), Vector3(40, 40, 40))
+	var process_material := ParticleProcessMaterial.new()
+	process_material.emission_shape = ParticleProcessMaterial.EMISSION_SHAPE_BOX
+	process_material.emission_box_extents = Vector3(17, 1, 17)
+	process_material.direction = Vector3(0.04, -1.0, 0.02)
+	process_material.spread = 5.0
+	process_material.initial_velocity_min = 17.0
+	process_material.initial_velocity_max = 23.0
+	process_material.gravity = Vector3(0, -18, 0)
+	rain_particles.process_material = process_material
+	var rain_quad := QuadMesh.new()
+	rain_quad.size = Vector2(0.025, 0.62)
+	var rain_material := StandardMaterial3D.new()
+	rain_material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	rain_material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	rain_material.albedo_color = Color(0.65, 0.82, 1.0, 0.72)
+	rain_quad.material = rain_material
+	rain_particles.draw_pass_1 = rain_quad
+	add_child(rain_particles)
+
+func _update_day_night(delta: float) -> void:
+	if delta > 0.0:
+		time_of_day = fposmod(time_of_day + delta / 1440.0, 1.0)
+	var daylight := maxf(0.0, sin((time_of_day - 0.25) * TAU))
+	var twilight := clamp(1.0 - absf(time_of_day - 0.25) * 5.0, 0.0, 1.0)
+	var night_top := Color(0.012, 0.025, 0.075)
+	var day_top := Color(0.075, 0.20, 0.39)
+	var night_horizon := Color(0.045, 0.065, 0.12)
+	var day_horizon := Color(0.62, 0.78, 0.88)
+	sky_material.sky_top_color = night_top.lerp(day_top, daylight)
+	sky_material.sky_horizon_color = night_horizon.lerp(day_horizon, daylight).lerp(Color(0.92, 0.40, 0.22), twilight * 0.42)
+	sky_material.ground_bottom_color = Color(0.035, 0.045, 0.065).lerp(Color(0.16, 0.20, 0.15), daylight)
+	sun_light.rotation_degrees = Vector3(-360.0 * time_of_day + 90.0, -32.0, 0.0)
+	sun_light.light_energy = 0.06 + daylight * 1.34
+	sun_light.light_color = Color(1.0, 0.72, 0.48).lerp(Color(1.0, 0.96, 0.86), daylight)
+	world_environment.environment.ambient_light_color = Color(0.12, 0.16, 0.28).lerp(Color(0.72, 0.80, 0.91), daylight)
+	world_environment.environment.ambient_light_energy = 0.18 + daylight * 0.62
+	if weather_mode == 2:
+		world_environment.environment.fog_density = 0.009
+		world_environment.environment.fog_light_color = Color(0.48, 0.55, 0.60)
+	elif weather_mode == 1:
+		world_environment.environment.fog_density = 0.0032
+		world_environment.environment.fog_light_color = Color(0.42, 0.52, 0.62)
+	else:
+		world_environment.environment.fog_density = 0.0018
+		world_environment.environment.fog_light_color = Color(0.62, 0.73, 0.79)
+
+func _cycle_weather() -> void:
+	weather_mode = (weather_mode + 1) % 3
+	if rain_particles:
+		rain_particles.emitting = weather_mode == 1
+	if weather_button:
+		weather_button.text = ["WEATHER: CLEAR", "WEATHER: RAIN", "WEATHER: MIST"][weather_mode]
+	_update_day_night(0.0)
+
+func _process(delta: float) -> void:
+	_update_day_night(delta)
+	if rain_particles and player:
+		rain_particles.global_position = player.global_position + Vector3(0, 13, 0)
 
 func _chunk_key(cx: int, cz: int) -> String:
 	return str(cx) + ":" + str(cz)
@@ -202,6 +278,10 @@ func _create_chunk(cx: int, cz: int) -> Node3D:
 	var ground_material := StandardMaterial3D.new()
 	ground_material.vertex_color_use_as_albedo = true
 	ground_material.roughness = 1.0
+	var terrain_shader := Shader.new()
+	terrain_shader.code = "shader_type spatial;\nrender_mode diffuse_burley, specular_schlick_ggx;\nvarying vec3 world_position;\nvoid vertex(){ world_position = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz; }\nvoid fragment(){ float grain = fract(sin(dot(floor(world_position.xz * 2.8), vec2(127.1, 311.7))) * 43758.5453); float broad = sin(world_position.x * 0.12) * sin(world_position.z * 0.10) * 0.035; ALBEDO = COLOR.rgb * (0.91 + grain * 0.12 + broad); ROUGHNESS = 0.96; }"
+	var terrain_material := ShaderMaterial.new()
+	terrain_material.shader = terrain_shader
 	ground_mesh.mesh = TerrainGenerator.build_chunk_mesh(
 		terrain_noise,
 		Vector2(cx * CHUNK_SIZE, cz * CHUNK_SIZE),
@@ -212,7 +292,7 @@ func _create_chunk(cx: int, cz: int) -> Node3D:
 		72.0,
 		96.0
 	)
-	ground_mesh.material_override = ground_material
+	ground_mesh.material_override = terrain_material
 	ground.add_child(ground_mesh)
 	var collision := CollisionShape3D.new()
 	collision.shape = ground_mesh.mesh.create_trimesh_shape()
@@ -397,15 +477,31 @@ func _add_cylinder(parent: Node3D, pos: Vector3, radius: float, height: float, m
 	mesh_instance.material_override = mat
 	parent.add_child(mesh_instance)
 
+func _add_water_surface(parent: Node3D, pos: Vector3, dimensions: Vector2, material: Material) -> void:
+	var water := MeshInstance3D.new()
+	var plane := PlaneMesh.new()
+	plane.size = dimensions
+	plane.subdivide_width = 24
+	plane.subdivide_depth = 48
+	water.mesh = plane
+	water.material_override = material
+	water.position = pos
+	water.rotation_degrees.x = -90.0
+	parent.add_child(water)
+
 func _build_starter_village(root: Node3D) -> void:
 	var path_mat := _material(Color(0.57, 0.45, 0.29))
-	var water_mat := _material(Color(0.10, 0.39, 0.61), 0.24)
+	var water_shader := Shader.new()
+	water_shader.code = "shader_type spatial;\nrender_mode blend_mix, cull_disabled, depth_draw_opaque;\nuniform vec4 water_color : source_color = vec4(0.035, 0.30, 0.52, 0.82);\nvarying vec3 world_position;\nvoid vertex(){ world_position = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz; VERTEX.y += sin(VERTEX.x * 0.42 + TIME * 1.4) * 0.045 + cos(VERTEX.y * 0.31 + TIME) * 0.025; }\nvoid fragment(){ float ripple = sin(world_position.x * 0.55 + TIME * 1.8) * cos(world_position.z * 0.34 - TIME * 1.2); ALBEDO = water_color.rgb * (0.82 + ripple * 0.12); ROUGHNESS = 0.16; METALLIC = 0.18; SPECULAR = 0.8; ALPHA = water_color.a; }"
+	water_material = ShaderMaterial.new()
+	water_material.shader = water_shader
+	var water_mat := water_material
 	var rail_mat := _material(Color(0.29, 0.18, 0.10))
 	var wall_mats := [_material(Color(0.82, 0.69, 0.48)), _material(Color(0.72, 0.79, 0.72)), _material(Color(0.82, 0.78, 0.65))]
 	var roof_mat := _material(Color(0.43, 0.19, 0.14))
 	_add_box(root, Vector3(32, 0.015, 32), Vector3(7, 0.12, 64), path_mat)
 	_add_box(root, Vector3(32, 0.02, 20), Vector3(48, 0.13, 3.4), path_mat)
-	_add_box(root, Vector3(-22, -0.10, 32), Vector3(25, 0.18, 64), water_mat)
+	_add_water_surface(root, Vector3(-22, -0.10, 32), Vector2(25, 64), water_mat)
 	_add_box(root, Vector3(-16, 0.20, 28), Vector3(15, 0.45, 4.5), path_mat, true)
 	for side in [-1.0, 1.0]:
 		_add_box(root, Vector3(-16, 0.78, 28 + side * 2.0), Vector3(15, 0.7, 0.18), rail_mat)
@@ -667,6 +763,13 @@ func _build_hud() -> void:
 	pause_hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	pause_box.add_child(pause_hint)
 	_build_creator_and_map(hud)
+	weather_button = _make_button("WEATHER: CLEAR", Vector2(20, 136), Vector2(190, 48))
+	weather_button.anchor_left = 0.0
+	weather_button.anchor_right = 0.0
+	weather_button.anchor_top = 0.0
+	weather_button.anchor_bottom = 0.0
+	hud.add_child(weather_button)
+	weather_button.pressed.connect(_cycle_weather)
 
 func _build_creator_and_map(hud: CanvasLayer) -> void:
 	var creator_button := _make_button("CHARACTER", Vector2(-190, 78), Vector2(174, 48))
