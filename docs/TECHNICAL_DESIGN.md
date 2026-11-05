@@ -37,14 +37,14 @@ The starter village has gable-roof house meshes, doors, windows, chimneys, emiss
 
 ### Player and UI
 
-The existing third-person CharacterBody3D, touch joystick, camera drag, sprint, jump, pause, basic character appearance panel and schematic map remain in the prototype. The procedural placeholder character now has pivot-based AnimationPlayer clips for idle, walk, run, jump, fall and landing, plus simple face/ear/nose/neck/shoe/backpack details. Movement polish adds speed-scaled gait timing, subtle torso bob, forward acceleration lean and lateral turn lean. Character Studio adds face-shape and hairstyle presets alongside skin, hair, shirt and trouser colors. It is still not a production skeletal rig; imported glTF character assets and authored animation clips remain a later milestone.
+The existing third-person CharacterBody3D, touch joystick, camera drag, sprint, jump, pause, basic character appearance panel and schematic map remain in the prototype. The procedural placeholder character now has pivot-based AnimationPlayer clips for idle, walk, run, jump, fall and landing, plus simple face/ear/nose/neck/shoe/backpack details. Shoes follow their animated leg pivots so the feet move with each gait cycle. Movement polish adds speed-scaled gait timing, subtle torso bob, forward acceleration lean and lateral turn lean. Character Studio adds face-shape and hairstyle presets alongside skin, hair, shirt and trouser colors. It is still not a production skeletal rig; imported glTF character assets and authored animation clips remain a later milestone.
 
 ## Performance budget and validation targets
 
 These are engineering targets, not measured results:
 
 - Keep active terrain chunks at 25.
-- Keep terrain grid resolution at 16 × 16 quads per chunk.
+- Keep terrain grid resolution at 20 × 20 quads per chunk.
 - Batch repeated trees with MultiMesh.
 - Avoid loading distant chunks.
 - Validate sustained 30 FPS on the minimum supported test device before increasing scene density.
@@ -66,7 +66,6 @@ These are engineering targets, not measured results:
 4. Replace procedural village props and placeholder residents with authored assets and NPC navigation/dialogue; expand save data to cover world objects and quests.
 5. Build designed city districts, road splines, forest, mountain, river and coast assets; add water physics.
 6. Add interaction, inventory, missions and persistent world save.
-7. Replace the primitive player with a rigged glTF character and authored skeletal animation clips.
 8. Profile on physical devices and tune the Medium preset.
 
 ## Known risks
