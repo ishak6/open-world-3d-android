@@ -21,13 +21,13 @@ The world is divided into 64 m × 64 m chunks. The player-centered active window
 
 ### Terrain generation
 
-`scripts/world/terrain_generator.gd` samples noise in absolute world coordinates. It creates a 16 × 16 quad grid per chunk, generates normals, assigns biome/elevation vertex colors and returns an ArrayMesh. The same mesh is used to create a static concave collision shape. A smooth radial blend keeps the starter village region flat while transitioning to rolling procedural terrain.
+`scripts/world/terrain_generator.gd` samples noise in absolute world coordinates. It creates a 20 × 20 quad grid per chunk, generates normals, assigns biome/elevation vertex colors and returns an ArrayMesh. The same mesh is used to create a static concave collision shape. A smooth radial blend keeps the starter village region flat while transitioning to rolling procedural terrain.
 
 The global-coordinate sampling is a seam-control requirement: neighbouring chunks must compute identical heights at shared borders.
 
 ### Environment rendering
 
-The Medium profile uses the mobile GL Compatibility renderer, moderate terrain mesh density, a limited active chunk window, reduced shadow distance, fog and biome palettes. Trees are grouped into per-chunk MultiMesh batches to reduce scene nodes and draw calls.
+The Medium profile uses the mobile GL Compatibility renderer, moderate terrain mesh density, a limited active chunk window, reduced shadow distance, fog and biome palettes. Trees, grass blades and shrubs are grouped into per-chunk MultiMesh batches to reduce scene nodes and draw calls. Deterministic chunk decoration adds biome-aware grass and shrub clusters; the starter village receives low-poly benches and stone crop-plot edging.
 
 ### Environment simulation
 
@@ -37,7 +37,7 @@ The starter village has gable-roof house meshes, doors, windows, chimneys, emiss
 
 ### Player and UI
 
-The existing third-person CharacterBody3D, touch joystick, camera drag, sprint, jump, pause, basic character appearance panel and schematic map remain in the prototype. The procedural placeholder character now has pivot-based AnimationPlayer clips for idle, walk, run and jump, plus simple face/ear/nose/neck/shoe/backpack details. Character Studio adds face-shape and hairstyle presets alongside skin, hair, shirt and trouser colors. It is still not a production skeletal rig; imported glTF character assets and authored animation clips remain a later milestone.
+The existing third-person CharacterBody3D, touch joystick, camera drag, sprint, jump, pause, basic character appearance panel and schematic map remain in the prototype. The procedural placeholder character now has pivot-based AnimationPlayer clips for idle, walk, run and jump, plus simple face/ear/nose/neck/shoe/backpack details. Movement polish adds speed-scaled gait timing, subtle torso bob, forward acceleration lean and lateral turn lean. Character Studio adds face-shape and hairstyle presets alongside skin, hair, shirt and trouser colors. It is still not a production skeletal rig; imported glTF character assets and authored animation clips remain a later milestone.
 
 ## Performance budget and validation targets
 
