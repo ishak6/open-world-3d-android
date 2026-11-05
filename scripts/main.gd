@@ -28,6 +28,24 @@ var loaded_chunks: Dictionary = {}
 var biome_noise := FastNoiseLite.new()
 var pause_panel: PanelContainer
 var is_paused := false
+var character_visual: Node3D
+var character_skin: StandardMaterial3D
+var character_shirt: StandardMaterial3D
+var character_pants: StandardMaterial3D
+var left_arm: MeshInstance3D
+var right_arm: MeshInstance3D
+var left_leg: MeshInstance3D
+var right_leg: MeshInstance3D
+var creator_panel: PanelContainer
+var map_panel: PanelContainer
+var animation_clock := 0.0
+var player_marker: ColorRect
+var skin_index := 0
+var outfit_index := 0
+var hair_index := 0
+var skin_palette := [Color(0.94, 0.72, 0.55), Color(0.72, 0.48, 0.34), Color(0.40, 0.24, 0.16), Color(0.25, 0.15, 0.11)]
+var outfit_palette := [Color(0.10, 0.34, 0.78), Color(0.12, 0.48, 0.34), Color(0.68, 0.20, 0.16), Color(0.72, 0.52, 0.12), Color(0.18, 0.16, 0.25)]
+var hair_palette := [Color(0.10, 0.065, 0.04), Color(0.30, 0.16, 0.08), Color(0.62, 0.48, 0.28), Color(0.08, 0.08, 0.09)]
 
 func _ready() -> void:
 	_setup_noise()
@@ -322,18 +340,61 @@ func _build_starter_village(root: Node3D) -> void:
 			for plant in range(8):
 				_add_cylinder(root, plot_pos + Vector3(-8 + plant * 2.2, 0.55, -3.4 + row * 1.6), 0.13, 1.0, crop)
 
+func _make_piece(parent: Node3D, piece_name: String, mesh: Mesh, pos: Vector3, mat: Material) -> MeshInstance3D:
+	var piece := MeshInstance3D.new()
+	piece.name = piece_name
+	piece.mesh = mesh
+	piece.position = pos
+	piece.material_override = mat
+	parent.add_child(piece)
+	return piece
+
 func _build_player() -> void:
 	player = CharacterBody3D.new()
 	player.name = "Player"
 	player.position = Vector3(32, 2, 51)
-	var body_mesh := MeshInstance3D.new()
-	var capsule := CapsuleMesh.new()
-	capsule.radius = 0.43
-	capsule.height = 1.8
-	body_mesh.mesh = capsule
-	body_mesh.position.y = 0.9
-	body_mesh.material_override = _material(Color(0.10, 0.34, 0.78))
-	player.add_child(body_mesh)
+	character_visual = Node3D.new()
+	character_visual.name = "CharacterVisual"
+	player.add_child(character_visual)
+
+	var skin_mat := _material(Color(0.72, 0.48, 0.34))
+	var shirt_mat := _material(Color(0.10, 0.34, 0.78))
+	var pants_mat := _material(Color(0.10, 0.14, 0.22))
+	var hair_mat := _material(Color(0.10, 0.065, 0.04))
+	character_skin = skin_mat
+	character_shirt = shirt_mat
+	character_pants = pants_mat
+
+	var torso := CapsuleMesh.new()
+	torso.radius = 0.36
+	torso.height = 0.92
+	_make_piece(character_visual, "Torso", torso, Vector3(0, 1.12, 0), shirt_mat)
+	var head := SphereMesh.new()
+	head.radius = 0.27
+	head.height = 0.56
+	_make_piece(character_visual, "Head", head, Vector3(0, 1.88, 0), skin_mat)
+	var hair := SphereMesh.new()
+	hair.radius = 0.285
+	hair.height = 0.30
+	_make_piece(character_visual, "Hair", hair, Vector3(0, 2.08, 0), hair_mat)
+	var eye_mesh := SphereMesh.new()
+	eye_mesh.radius = 0.027
+	eye_mesh.height = 0.045
+	var eye_mat := _material(Color(0.025, 0.025, 0.03))
+	_make_piece(character_visual, "EyeLeft", eye_mesh, Vector3(-0.095, 1.91, -0.235), eye_mat)
+	_make_piece(character_visual, "EyeRight", eye_mesh, Vector3(0.095, 1.91, -0.235), eye_mat)
+
+	var arm_mesh := CapsuleMesh.new()
+	arm_mesh.radius = 0.105
+	arm_mesh.height = 0.72
+	left_arm = _make_piece(character_visual, "LeftArm", arm_mesh, Vector3(-0.43, 1.15, 0), skin_mat)
+	right_arm = _make_piece(character_visual, "RightArm", arm_mesh, Vector3(0.43, 1.15, 0), skin_mat)
+	var leg_mesh := CapsuleMesh.new()
+	leg_mesh.radius = 0.13
+	leg_mesh.height = 0.78
+	left_leg = _make_piece(character_visual, "LeftLeg", leg_mesh, Vector3(-0.16, 0.43, 0), pants_mat)
+	right_leg = _make_piece(character_visual, "RightLeg", leg_mesh, Vector3(0.16, 0.43, 0), pants_mat)
+
 	var collision := CollisionShape3D.new()
 	var shape := CapsuleShape3D.new()
 	shape.radius = 0.43
@@ -350,6 +411,45 @@ func _build_player() -> void:
 	camera.current = true
 	camera_pivot.add_child(camera)
 	add_child(player)
+	_load_character_appearance()
+
+func _load_character_appearance() -> void:
+	var config := ConfigFile.new()
+	if config.load("user://character.cfg") == OK:
+		_apply_character_colors(
+			config.get_value("appearance", "skin", Color(0.72, 0.48, 0.34)),
+			config.get_value("appearance", "shirt", Color(0.10, 0.34, 0.78)),
+			config.get_value("appearance", "pants", Color(0.10, 0.14, 0.22))
+		)
+
+func _apply_character_colors(skin: Color, shirt: Color, pants: Color) -> void:
+	character_skin.albedo_color = skin
+	character_shirt.albedo_color = shirt
+	character_pants.albedo_color = pants
+
+func _save_character_appearance() -> void:
+	var config := ConfigFile.new()
+	config.set_value("appearance", "skin", character_skin.albedo_color)
+	config.set_value("appearance", "shirt", character_shirt.albedo_color)
+	config.set_value("appearance", "pants", character_pants.albedo_color)
+	config.save("user://character.cfg")
+
+func _cycle_skin() -> void:
+	skin_index = (skin_index + 1) % skin_palette.size()
+	_apply_character_colors(skin_palette[skin_index], character_shirt.albedo_color, character_pants.albedo_color)
+	_save_character_appearance()
+
+func _cycle_outfit() -> void:
+	outfit_index = (outfit_index + 1) % outfit_palette.size()
+	_apply_character_colors(character_skin.albedo_color, outfit_palette[outfit_index], character_pants.albedo_color)
+	_save_character_appearance()
+
+func _cycle_hair() -> void:
+	hair_index = (hair_index + 1) % hair_palette.size()
+	var hair_piece := character_visual.get_node_or_null("Hair") as MeshInstance3D
+	if hair_piece:
+		hair_piece.material_override = _material(hair_palette[hair_index])
+	_save_character_appearance()
 
 func _build_hud() -> void:
 	var hud := CanvasLayer.new()
@@ -449,6 +549,129 @@ func _build_hud() -> void:
 	pause_hint.text = "Explore the endless frontier"
 	pause_hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	pause_box.add_child(pause_hint)
+	_build_creator_and_map(hud)
+
+func _build_creator_and_map(hud: CanvasLayer) -> void:
+	var creator_button := _make_button("CHARACTER", Vector2(-190, 78), Vector2(174, 48))
+	creator_button.anchor_left = 1.0
+	creator_button.anchor_right = 1.0
+	creator_button.anchor_top = 0.0
+	creator_button.anchor_bottom = 0.0
+	hud.add_child(creator_button)
+	creator_button.pressed.connect(func():
+		creator_panel.visible = not creator_panel.visible
+		map_panel.visible = false
+	)
+
+	var map_button := _make_button("MAP", Vector2(-190, 134), Vector2(174, 48))
+	map_button.anchor_left = 1.0
+	map_button.anchor_right = 1.0
+	map_button.anchor_top = 0.0
+	map_button.anchor_bottom = 0.0
+	hud.add_child(map_button)
+	map_button.pressed.connect(func():
+		map_panel.visible = not map_panel.visible
+		creator_panel.visible = false
+	)
+
+	creator_panel = PanelContainer.new()
+	creator_panel.visible = false
+	creator_panel.set_anchors_preset(Control.PRESET_CENTER)
+	creator_panel.position = Vector2(-210, -190)
+	creator_panel.custom_minimum_size = Vector2(420, 380)
+	creator_panel.add_theme_stylebox_override("panel", _panel_style(Color(0.025, 0.07, 0.10, 0.97)))
+	hud.add_child(creator_panel)
+	var creator_box := VBoxContainer.new()
+	creator_box.add_theme_constant_override("separation", 12)
+	creator_panel.add_child(creator_box)
+	var creator_title := Label.new()
+	creator_title.text = "CHARACTER STUDIO"
+	creator_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	creator_title.add_theme_font_size_override("font_size", 23)
+	creator_box.add_child(creator_title)
+	var creator_desc := Label.new()
+	creator_desc.text = "Customize your explorer • changes save on this device"
+	creator_desc.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	creator_desc.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	creator_box.add_child(creator_desc)
+	var skin_button := _make_button("SKIN TONE  •  CHANGE", Vector2.ZERO, Vector2(370, 48))
+	creator_box.add_child(skin_button)
+	skin_button.pressed.connect(_cycle_skin)
+	var hair_button := _make_button("HAIR COLOR  •  CHANGE", Vector2.ZERO, Vector2(370, 48))
+	creator_box.add_child(hair_button)
+	hair_button.pressed.connect(_cycle_hair)
+	var outfit_button := _make_button("SHIRT COLOR  •  CHANGE", Vector2.ZERO, Vector2(370, 48))
+	creator_box.add_child(outfit_button)
+	outfit_button.pressed.connect(_cycle_outfit)
+	var close_creator := _make_button("DONE", Vector2.ZERO, Vector2(370, 46))
+	creator_box.add_child(close_creator)
+	close_creator.pressed.connect(func(): creator_panel.visible = false)
+
+	map_panel = PanelContainer.new()
+	map_panel.visible = false
+	map_panel.set_anchors_preset(Control.PRESET_CENTER)
+	map_panel.position = Vector2(-230, -205)
+	map_panel.custom_minimum_size = Vector2(460, 410)
+	map_panel.add_theme_stylebox_override("panel", _panel_style(Color(0.025, 0.07, 0.10, 0.97)))
+	hud.add_child(map_panel)
+	var map_box := VBoxContainer.new()
+	map_box.add_theme_constant_override("separation", 8)
+	map_panel.add_child(map_box)
+	var map_title := Label.new()
+	map_title.text = "WORLD MAP  •  EXPLORATION"
+	map_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	map_title.add_theme_font_size_override("font_size", 21)
+	map_box.add_child(map_title)
+	var map_info := Label.new()
+	map_info.text = "Village  •  River  •  Forest  •  Highlands  •  Drylands\nBlue dot = your current position"
+	map_info.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	map_info.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	map_box.add_child(map_info)
+	var map_canvas := ColorRect.new()
+	map_canvas.custom_minimum_size = Vector2(420, 255)
+	map_canvas.color = Color(0.10, 0.22, 0.19)
+	map_canvas.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	map_box.add_child(map_canvas)
+	var river := ColorRect.new()
+	river.position = Vector2(0, 104)
+	river.size = Vector2(420, 32)
+	river.color = Color(0.10, 0.42, 0.65)
+	map_canvas.add_child(river)
+	var road_v := ColorRect.new()
+	road_v.position = Vector2(205, 0)
+	road_v.size = Vector2(12, 255)
+	road_v.color = Color(0.68, 0.58, 0.39)
+	map_canvas.add_child(road_v)
+	var road_h := ColorRect.new()
+	road_h.position = Vector2(0, 66)
+	road_h.size = Vector2(420, 10)
+	road_h.color = Color(0.68, 0.58, 0.39)
+	map_canvas.add_child(road_h)
+	_add_map_marker(map_canvas, Vector2(205, 66), "VILLAGE", Color(0.96, 0.78, 0.34))
+	_add_map_marker(map_canvas, Vector2(76, 38), "FOREST", Color(0.28, 0.72, 0.40))
+	_add_map_marker(map_canvas, Vector2(340, 36), "HILLS", Color(0.65, 0.68, 0.64))
+	_add_map_marker(map_canvas, Vector2(330, 205), "FIELDS", Color(0.82, 0.67, 0.30))
+	player_marker = ColorRect.new()
+	player_marker.position = Vector2(197, 155)
+	player_marker.size = Vector2(18, 18)
+	player_marker.color = Color(0.20, 0.72, 1.0)
+	map_canvas.add_child(player_marker)
+	var map_close := _make_button("CLOSE MAP", Vector2.ZERO, Vector2(420, 44))
+	map_box.add_child(map_close)
+	map_close.pressed.connect(func(): map_panel.visible = false)
+
+func _add_map_marker(parent: Control, pos: Vector2, caption: String, tint: Color) -> void:
+	var marker := ColorRect.new()
+	marker.position = pos
+	marker.size = Vector2(12, 12)
+	marker.color = tint
+	parent.add_child(marker)
+	var label := Label.new()
+	label.text = caption
+	label.position = pos + Vector2(14, -7)
+	label.add_theme_font_size_override("font_size", 11)
+	label.add_theme_color_override("font_color", Color.WHITE)
+	parent.add_child(label)
 
 func _anchor_bottom_right(control: Control) -> void:
 	control.anchor_left = 1.0
@@ -548,6 +771,28 @@ func _rotate_camera(delta: Vector2) -> void:
 	camera_pivot.rotate_y(-delta.x * LOOK_SENSITIVITY)
 	camera_pivot.rotation.x = clamp(camera_pivot.rotation.x - delta.y * LOOK_SENSITIVITY, -0.95, 0.48)
 
+func _update_character_animation(delta: float) -> void:
+	if character_visual == null:
+		return
+	var horizontal_speed := Vector2(player.velocity.x, player.velocity.z).length()
+	if horizontal_speed > 0.5 and player.is_on_floor():
+		animation_clock += delta * (10.0 if is_running else 7.0)
+		var swing := sin(animation_clock) * 0.48
+		left_arm.rotation.x = swing
+		right_arm.rotation.x = -swing
+		left_leg.rotation.x = -swing
+		right_leg.rotation.x = swing
+	else:
+		animation_clock = 0.0
+		left_arm.rotation.x = move_toward(left_arm.rotation.x, 0.0, delta * 3.0)
+		right_arm.rotation.x = move_toward(right_arm.rotation.x, 0.0, delta * 3.0)
+		left_leg.rotation.x = move_toward(left_leg.rotation.x, 0.0, delta * 3.0)
+		right_leg.rotation.x = move_toward(right_leg.rotation.x, 0.0, delta * 3.0)
+	if not player.is_on_floor():
+		character_visual.position.y = 0.06
+	else:
+		character_visual.position.y = 0.0
+
 func _physics_process(delta: float) -> void:
 	if player == null or is_paused:
 		return
@@ -578,3 +823,6 @@ func _physics_process(delta: float) -> void:
 		player.global_position = Vector3(current_chunk.x * CHUNK_SIZE + 32, 3, current_chunk.y * CHUNK_SIZE + 32)
 		player.velocity = Vector3.ZERO
 	_update_chunks()
+	_update_character_animation(delta)
+	if player_marker and is_instance_valid(player_marker):
+		player_marker.position = Vector2(197.0 + fposmod(player.global_position.x, 64.0) * 0.35, 145.0 + fposmod(player.global_position.z, 64.0) * 0.35)
