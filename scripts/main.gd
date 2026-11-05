@@ -295,11 +295,11 @@ func _on_joystick_input(event: InputEvent) -> void:
 			move_vector = Vector2.ZERO
 	elif event is InputEventScreenDrag and joystick_active:
 		var center := Vector2(75, 75)
-		move_vector = (event.position - Vector2(103, -130) - center).limit_length(58) / 58.0
+		move_vector = (event.position - center).limit_length(58) / 58.0
 	elif event is InputEventMouseButton:
 		joystick_active = event.pressed
 	elif event is InputEventMouseMotion and joystick_active:
-		move_vector = (event.position - Vector2(103, -130) - Vector2(75, 75)).limit_length(58) / 58.0
+		move_vector = (event.position - Vector2(75, 75)).limit_length(58) / 58.0
 
 func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventMouseMotion and Input.mouse_mode == Input.MOUSE_MODE_CAPTURED:
@@ -323,8 +323,7 @@ func _physics_process(delta: float) -> void:
 	if player == null:
 		return
 	var keyboard := Vector2.ZERO
-	keyboard.x = Input.get_action_strength("move_right") - Input.get_action_strength("move_left")
-	keyboard.y = Input.get_action_strength("move_back") - Input.get_action_strength("move_forward")
+	keyboard = Input.get_vector("ui_left", "ui_right", "ui_up", "ui_down")
 	var input_vector := move_vector if move_vector.length() > 0.08 else keyboard
 	var direction := (player.transform.basis * Vector3(input_vector.x, 0, input_vector.y)).normalized()
 	if direction.length() > 0.01:
