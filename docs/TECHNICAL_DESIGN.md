@@ -37,7 +37,7 @@ The starter village has gable-roof house meshes, doors, windows, chimneys, emiss
 
 ### Player and UI
 
-The existing third-person CharacterBody3D, touch joystick, camera drag, sprint, jump, pause, basic character appearance panel and schematic map remain in the prototype. The procedural placeholder character now has pivot-based AnimationPlayer clips for idle, walk, run and jump, plus simple face/ear/nose/neck/shoe/backpack details. Movement polish adds speed-scaled gait timing, subtle torso bob, forward acceleration lean and lateral turn lean. Character Studio adds face-shape and hairstyle presets alongside skin, hair, shirt and trouser colors. It is still not a production skeletal rig; imported glTF character assets and authored animation clips remain a later milestone.
+The existing third-person CharacterBody3D, touch joystick, camera drag, sprint, jump, pause, basic character appearance panel and schematic map remain in the prototype. The procedural placeholder character now has pivot-based AnimationPlayer clips for idle, walk, run, jump, fall and landing, plus simple face/ear/nose/neck/shoe/backpack details. Movement polish adds speed-scaled gait timing, subtle torso bob, forward acceleration lean and lateral turn lean. Character Studio adds face-shape and hairstyle presets alongside skin, hair, shirt and trouser colors. It is still not a production skeletal rig; imported glTF character assets and authored animation clips remain a later milestone.
 
 ## Performance budget and validation targets
 
