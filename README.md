@@ -26,6 +26,7 @@ Offline 3D open-world Android exploration game prototype, built with Godot 4.4.1
 - Expanded village with gable roofs, doors, windows, chimneys, street lamps and three decorative resident prototypes.
 - Android-oriented Godot GL Compatibility renderer.
 - Runtime day/night cycle with changing sun energy, sky colors and ambient light.
+- Drifting procedural low-poly cloud clusters that follow the player region.
 - Weather selector: clear, rain (local GPU rain particles) and mist/fog.
 - Animated river surface using a lightweight water shader.
 - Procedural terrain micro-variation shader for hybrid surface detail.
