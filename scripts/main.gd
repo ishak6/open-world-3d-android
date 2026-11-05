@@ -3,7 +3,10 @@ extends Node3D
 # Village Frontier - streamed procedural world
 const WORLD_SEED := 481516
 const CHUNK_SIZE := 64.0
-const TERRAIN_RESOLUTION := 16
+const TERRAIN_RESOLUTION := 20
+const MOVE_ACCELERATION := 19.0
+const MOVE_DECELERATION := 24.0
+const TURN_RESPONSE := 10.0
 const TerrainGenerator = preload("res://scripts/world/terrain_generator.gd")
 const LOAD_RADIUS := 2
 const UNLOAD_RADIUS := 2
@@ -19,6 +22,7 @@ var camera_rig: Node3D
 var camera_pivot: Node3D
 var camera: Camera3D
 var move_vector := Vector2.ZERO
+var horizontal_velocity := Vector2.ZERO
 var look_finger := -1
 var joystick_finger := -1
 var mouse_joystick_active := false
@@ -129,6 +133,9 @@ func _build_environment() -> void:
 	environment.ambient_light_color = Color(0.72, 0.80, 0.91)
 	environment.ambient_light_energy = 0.72
 	environment.tonemap_mode = Environment.TONE_MAPPER_FILMIC
+	environment.adjustment_enabled = true
+	environment.adjustment_contrast = 1.06
+	environment.adjustment_saturation = 1.08
 	environment.fog_enabled = true
 	environment.fog_light_color = Color(0.62, 0.73, 0.79)
 	environment.fog_density = 0.0018
@@ -139,7 +146,8 @@ func _build_environment() -> void:
 	sun_light.rotation_degrees = Vector3(-48, -32, 0)
 	sun_light.light_energy = 1.25
 	sun_light.shadow_enabled = true
-	sun_light.directional_shadow_max_distance = 72.0
+	sun_light.directional_shadow_max_distance = 84.0
+	sun_light.shadow_bias = 0.035
 	add_child(sun_light)
 	_update_day_night(0.0)
 
@@ -1303,7 +1311,7 @@ func _build_character_animations() -> void:
 	var jump := Animation.new()
 	jump.resource_name = "Jump"
 	jump.length = 0.48
-	jump.loop_mode = Animation.LOOP_LINEAR
+	jump.loop_mode = Animation.LOOP_NONE
 	_add_animation_track(jump, "CharacterVisual/LeftArmPivot", [0.0, 0.24, 0.48], [Vector3(-0.25, 0, 0), Vector3(-1.0, 0, -0.12), Vector3(-1.0, 0, -0.12)])
 	_add_animation_track(jump, "CharacterVisual/RightArmPivot", [0.0, 0.24, 0.48], [Vector3(-0.25, 0, 0), Vector3(-1.0, 0, 0.12), Vector3(-1.0, 0, 0.12)])
 	_add_animation_track(jump, "CharacterVisual/LeftLegPivot", [0.0, 0.24, 0.48], [Vector3(0.1, 0, 0), Vector3(0.28, 0, 0), Vector3(0.28, 0, 0)])
@@ -1319,24 +1327,27 @@ func _update_character_animation(_delta: float) -> void:
 	var horizontal_speed := Vector2(player.velocity.x, player.velocity.z).length()
 	var next_animation := "Jump"
 	if player.is_on_floor():
-		if horizontal_speed > 0.5:
-			next_animation = "Run" if is_running else "Walk"
+		if horizontal_speed > 0.45:
+			next_animation = "Run" if is_running and horizontal_speed > WALK_SPEED * 0.65 else "Walk"
 		else:
 			next_animation = "Idle"
 	if next_animation != active_animation:
 		active_animation = next_animation
-		animation_player.play(next_animation, 0.18)
-		animation_player.speed_scale = 1.0
-	if not player.is_on_floor():
-		character_visual.position.y = 0.05
+		animation_player.play(next_animation, 0.14)
+	if next_animation == "Walk":
+		animation_player.speed_scale = clampf(horizontal_speed / WALK_SPEED, 0.72, 1.35)
+	elif next_animation == "Run":
+		animation_player.speed_scale = clampf(horizontal_speed / RUN_SPEED, 0.82, 1.22)
 	else:
-		character_visual.position.y = 0.0
+		animation_player.speed_scale = 1.0
+	character_visual.position.y = 0.045 if not player.is_on_floor() else 0.0
 
 func _physics_process(delta: float) -> void:
 	if player == null or is_paused:
 		return
 	var keyboard := Input.get_vector("ui_left", "ui_right", "ui_up", "ui_down")
 	var input_vector := move_vector if move_vector.length() > 0.08 else keyboard
+	var input_strength := clampf(input_vector.length(), 0.0, 1.0)
 	var camera_forward := -camera_pivot.global_transform.basis.z
 	camera_forward.y = 0.0
 	camera_forward = camera_forward.normalized()
@@ -1344,15 +1355,16 @@ func _physics_process(delta: float) -> void:
 	camera_right.y = 0.0
 	camera_right = camera_right.normalized()
 	var direction := (camera_right * input_vector.x + camera_forward * -input_vector.y).normalized()
+	var target_speed := RUN_SPEED if is_running else WALK_SPEED
+	var target_velocity := direction * target_speed * input_strength
+	var response := MOVE_ACCELERATION if input_strength > 0.08 else MOVE_DECELERATION
+	horizontal_velocity = horizontal_velocity.move_toward(target_velocity, response * delta)
+	player.velocity.x = horizontal_velocity.x
+	player.velocity.z = horizontal_velocity.y
+	if input_strength > 0.08 and direction.length() > 0.01:
+		var target_yaw := atan2(-direction.x, -direction.z)
+		player.rotation.y = lerp_angle(player.rotation.y, target_yaw, 1.0 - exp(-TURN_RESPONSE * delta))
 	camera_rig.global_position = player.global_position
-	if direction.length() > 0.01:
-		var speed := RUN_SPEED if is_running else WALK_SPEED
-		player.velocity.x = direction.x * speed
-		player.velocity.z = direction.z * speed
-		player.rotation.y = lerp_angle(player.rotation.y, atan2(-direction.x, -direction.z), delta * 8.0)
-	else:
-		player.velocity.x = move_toward(player.velocity.x, 0.0, WALK_SPEED * 4.0 * delta)
-		player.velocity.z = move_toward(player.velocity.z, 0.0, WALK_SPEED * 4.0 * delta)
 	if not player.is_on_floor():
 		player.velocity.y -= GRAVITY * delta
 	elif jump_requested:
@@ -1363,6 +1375,7 @@ func _physics_process(delta: float) -> void:
 	if player.global_position.y < -20.0:
 		player.global_position = Vector3(current_chunk.x * CHUNK_SIZE + 32, 3, current_chunk.y * CHUNK_SIZE + 32)
 		player.velocity = Vector3.ZERO
+		horizontal_velocity = Vector2.ZERO
 	_update_chunks()
 	_update_character_animation(delta)
 	if player_marker and is_instance_valid(player_marker):
