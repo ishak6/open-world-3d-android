@@ -6,7 +6,7 @@ const CHUNK_SIZE := 64.0
 const TERRAIN_RESOLUTION := 16
 const TerrainGenerator = preload("res://scripts/world/terrain_generator.gd")
 const LOAD_RADIUS := 2
-const UNLOAD_RADIUS := 3
+const UNLOAD_RADIUS := 2
 const WALK_SPEED := 5.2
 const RUN_SPEED := 8.8
 const LOOK_SENSITIVITY := 0.0042
@@ -221,13 +221,13 @@ func _create_chunk(cx: int, cz: int) -> Node3D:
 
 	var rng := RandomNumberGenerator.new()
 	rng.seed = int(abs(WORLD_SEED + cx * 73856093 + cz * 19349663))
-	_add_chunk_landmarks(root, biome, rng)
+	_add_chunk_landmarks(root, biome, rng, cx, cz)
 	if cx == 0 and cz == 0:
 		_build_starter_village(root)
 	_add_chunk_vegetation(root, biome, rng, cx, cz)
 	return root
 
-func _add_chunk_landmarks(root: Node3D, biome: String, rng: RandomNumberGenerator) -> void:
+func _add_chunk_landmarks(root: Node3D, biome: String, rng: RandomNumberGenerator, cx: int, cz: int) -> void:
 	var rock_mat := _material(Color(0.40, 0.43, 0.42))
 	if biome == "highland":
 		for i in range(3):
