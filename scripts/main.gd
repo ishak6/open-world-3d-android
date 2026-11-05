@@ -229,7 +229,9 @@ func _add_chunk_landmarks(root: Node3D, biome: String, rng: RandomNumberGenerato
 			peak_mesh.height = rng.randf_range(18.0, 30.0)
 			peak.mesh = peak_mesh
 			peak.material_override = rock_mat
-			peak.position = Vector3(rng.randf_range(7, 57), peak_mesh.height * 0.35, rng.randf_range(7, 57))
+			var peak_x := rng.randf_range(7.0, 57.0)
+			var peak_z := rng.randf_range(7.0, 57.0)
+			peak.position = Vector3(peak_x, _world_height(cx * CHUNK_SIZE + peak_x, cz * CHUNK_SIZE + peak_z) + peak_mesh.height * 0.35, peak_z)
 			peak.scale = Vector3(1.4, 1.0, 1.2)
 			root.add_child(peak)
 	elif biome == "dryland":
@@ -240,19 +242,26 @@ func _add_chunk_landmarks(root: Node3D, biome: String, rng: RandomNumberGenerato
 			dune_mesh.height = rng.randf_range(2.0, 4.0)
 			dune.mesh = dune_mesh
 			dune.material_override = _material(Color(0.58, 0.49, 0.35))
-			dune.position = Vector3(rng.randf_range(5, 59), 0.6, rng.randf_range(5, 59))
+			var dune_x := rng.randf_range(5.0, 59.0)
+			var dune_z := rng.randf_range(5.0, 59.0)
+			dune.position = Vector3(dune_x, _world_height(cx * CHUNK_SIZE + dune_x, cz * CHUNK_SIZE + dune_z) + 0.6, dune_z)
 			dune.scale = Vector3(1.8, 0.65, 1.3)
 			root.add_child(dune)
 
+func _world_height(world_x: float, world_z: float) -> float:
+	return TerrainGenerator.height_at(terrain_noise, world_x, world_z, Vector2(32.0, 32.0), 72.0, 96.0)
+
 func _add_chunk_vegetation(root: Node3D, biome: String, rng: RandomNumberGenerator, cx: int, cz: int) -> void:
-	var trunk_mat := _material(Color(0.29, 0.18, 0.10))
-	var leaf_colors := [Color(0.10, 0.30, 0.15), Color(0.16, 0.40, 0.18), Color(0.28, 0.47, 0.20)]
-	var tree_count := 7
+	var tree_count := 5
 	match biome:
-		"forest": tree_count = 12
-		"highland": tree_count = 4
+		"forest": tree_count = 9
+		"highland": tree_count = 3
 		"dryland": tree_count = 1
-		"meadow": tree_count = 5
+		"meadow": tree_count = 4
+
+	var tree_transforms: Array[Transform3D] = []
+	var crown_colors: Array[Color] = []
+	var leaf_colors := [Color(0.10, 0.30, 0.15), Color(0.16, 0.40, 0.18), Color(0.28, 0.47, 0.20)]
 	for i in range(tree_count):
 		var local_x := rng.randf_range(4.0, CHUNK_SIZE - 4.0)
 		var local_z := rng.randf_range(4.0, CHUNK_SIZE - 4.0)
@@ -260,11 +269,51 @@ func _add_chunk_vegetation(root: Node3D, biome: String, rng: RandomNumberGenerat
 		var global_z := cz * CHUNK_SIZE + local_z
 		if cx == 0 and cz == 0 and abs(global_x - 32.0) < 39.0 and abs(global_z - 32.0) < 39.0:
 			continue
+		var ground_y := _world_height(global_x, global_z)
 		if biome == "dryland":
-			_add_cactus(root, Vector3(local_x, 0, local_z))
+			_add_cactus(root, Vector3(local_x, ground_y, local_z))
 		else:
-			var leaf_mat := _material(leaf_colors[rng.randi_range(0, leaf_colors.size() - 1)])
-			_add_tree_visual(root, Vector3(local_x, 0, local_z), trunk_mat, leaf_mat, rng.randf_range(0.82, 1.22))
+			var scale_value := rng.randf_range(0.82, 1.22)
+			var transform_basis := Basis().scaled(Vector3.ONE * scale_value)
+			tree_transforms.append(Transform3D(transform_basis, Vector3(local_x, ground_y + 1.55 * scale_value, local_z)))
+			crown_colors.append(leaf_colors[rng.randi_range(0, leaf_colors.size() - 1)))
+	if not tree_transforms.is_empty():
+		var trunk_mesh := CylinderMesh.new()
+		trunk_mesh.top_radius = 0.22
+		trunk_mesh.bottom_radius = 0.34
+		trunk_mesh.height = 3.1
+		var trunk_multi := MultiMesh.new()
+		trunk_multi.transform_format = MultiMesh.TRANSFORM_3D
+		trunk_multi.mesh = trunk_mesh
+		trunk_multi.instance_count = tree_transforms.size()
+		for i in range(tree_transforms.size()):
+			trunk_multi.set_instance_transform(i, tree_transforms[i])
+		var trunks := MultiMeshInstance3D.new()
+		trunks.multimesh = trunk_multi
+		trunks.material_override = _material(Color(0.29, 0.18, 0.10))
+		root.add_child(trunks)
+
+		var crown_mesh := SphereMesh.new()
+		crown_mesh.radius = 1.75
+		crown_mesh.height = 3.4
+		var crown_multi := MultiMesh.new()
+		crown_multi.transform_format = MultiMesh.TRANSFORM_3D
+		crown_multi.use_colors = true
+		crown_multi.mesh = crown_mesh
+		crown_multi.instance_count = tree_transforms.size()
+		for i in range(tree_transforms.size()):
+			var transform := tree_transforms[i]
+			var scale_value := transform.basis.get_scale().x
+			transform.origin.y += 2.20 * scale_value
+			crown_multi.set_instance_transform(i, transform)
+			crown_multi.set_instance_color(i, crown_colors[i])
+		var crown_material := _material(Color.WHITE)
+		crown_material.vertex_color_use_as_albedo = true
+		var crowns := MultiMeshInstance3D.new()
+		crowns.multimesh = crown_multi
+		crowns.material_override = crown_material
+		root.add_child(crowns)
+
 	for i in range(2 if biome != "dryland" else 4):
 		var rock := MeshInstance3D.new()
 		var rock_mesh := SphereMesh.new()
@@ -272,7 +321,9 @@ func _add_chunk_vegetation(root: Node3D, biome: String, rng: RandomNumberGenerat
 		rock_mesh.height = rng.randf_range(0.7, 1.5)
 		rock.mesh = rock_mesh
 		rock.material_override = _material(Color(0.39, 0.42, 0.41))
-		rock.position = Vector3(rng.randf_range(3, 61), 0.2, rng.randf_range(3, 61))
+		var rock_x := rng.randf_range(3.0, 61.0)
+		var rock_z := rng.randf_range(3.0, 61.0)
+		rock.position = Vector3(rock_x, _world_height(cx * CHUNK_SIZE + rock_x, cz * CHUNK_SIZE + rock_z) + 0.2, rock_z)
 		rock.scale = Vector3(1.4, 0.8, 1.0)
 		root.add_child(rock)
 
