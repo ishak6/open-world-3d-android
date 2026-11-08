@@ -865,6 +865,17 @@ func _build_player() -> void:
 	right_arm_pivot.position = Vector3(0.43, 1.48, 0)
 	character_visual.add_child(right_arm_pivot)
 	right_arm = _make_piece(right_arm_pivot, "RightArm", arm_mesh, Vector3(0, -0.35, 0), skin_mat)
+	# Visible hands and jacket sleeves complete the arm silhouette.
+	var hand_mesh := SphereMesh.new()
+	hand_mesh.radius = 0.105
+	hand_mesh.height = 0.19
+	_make_piece(left_arm_pivot, "LeftHand", hand_mesh, Vector3(0, -0.72, -0.015), skin_mat)
+	_make_piece(right_arm_pivot, "RightHand", hand_mesh, Vector3(0, -0.72, -0.015), skin_mat)
+	var sleeve_mesh := CapsuleMesh.new()
+	sleeve_mesh.radius = 0.112
+	sleeve_mesh.height = 0.48
+	_make_piece(left_arm_pivot, "LeftJacketSleeve", sleeve_mesh, Vector3(0, -0.20, 0.012), shirt_mat)
+	_make_piece(right_arm_pivot, "RightJacketSleeve", sleeve_mesh, Vector3(0, -0.20, 0.012), shirt_mat)
 
 	var leg_mesh := CapsuleMesh.new()
 	leg_mesh.radius = 0.13
@@ -879,6 +890,12 @@ func _build_player() -> void:
 	right_leg_pivot.position = Vector3(0.16, 0.82, 0)
 	character_visual.add_child(right_leg_pivot)
 	right_leg = _make_piece(right_leg_pivot, "RightLeg", leg_mesh, Vector3(0, -0.39, 0), pants_mat)
+	# Distinct boots make both feet readable from the third-person camera.
+	var boot_mesh := BoxMesh.new()
+	boot_mesh.size = Vector3(0.30, 0.20, 0.43)
+	var boot_mat := _material(Color(0.20, 0.13, 0.085))
+	_make_piece(left_leg_pivot, "LeftBoot", boot_mesh, Vector3(0, -0.72, -0.075), boot_mat)
+	_make_piece(right_leg_pivot, "RightBoot", boot_mesh, Vector3(0, -0.63, -0.075), boot_mat)
 
 	# Feet follow the animated leg pivots instead of floating in place.
 	var shoe_mesh := BoxMesh.new()
@@ -1098,16 +1115,16 @@ func _build_hud() -> void:
 	joystick_knob.add_theme_stylebox_override("panel", knob_style)
 	joystick.add_child(joystick_knob)
 
-	var run_button := _make_button("RUN", Vector2(-166, -166), Vector2(142, 62))
+	var run_button := _make_button("▲", Vector2(-104, -164), Vector2(76, 76))
 	_anchor_bottom_right(run_button)
 	run_button.button_down.connect(func(): is_running = true)
 	run_button.button_up.connect(func(): is_running = false)
 	hud.add_child(run_button)
-	var jump_button := _make_button("JUMP", Vector2(-166, -92), Vector2(142, 62))
+	var jump_button := _make_button("↑", Vector2(-104, -78), Vector2(76, 76))
 	_anchor_bottom_right(jump_button)
 	jump_button.pressed.connect(func(): jump_requested = true)
 	hud.add_child(jump_button)
-	var reset_button := _make_button("CAM", Vector2(-166, -238), Vector2(142, 54))
+	var reset_button := _make_button("⟳", Vector2(-104, -250), Vector2(76, 64))
 	_anchor_bottom_right(reset_button)
 	reset_button.pressed.connect(_reset_camera)
 	hud.add_child(reset_button)
@@ -1314,7 +1331,7 @@ func _make_button(caption: String, pos: Vector2, button_size: Vector2) -> Button
 	button.text = caption
 	button.position = pos
 	button.size = button_size
-	button.add_theme_font_size_override("font_size", 18)
+	button.add_theme_font_size_override("font_size", 28)
 	button.add_theme_color_override("font_color", Color.WHITE)
 	button.add_theme_stylebox_override("normal", _button_style(Color(0.06, 0.23, 0.36, 0.91)))
 	button.add_theme_stylebox_override("hover", _button_style(Color(0.09, 0.34, 0.49, 0.96)))
