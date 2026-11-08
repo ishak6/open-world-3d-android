@@ -108,3 +108,13 @@ The repository currently contains no GLB/GLTF character or tree assets. The foll
 5. Run import + headless smoke + Android export, then validate the asset visually on a physical Android device.
 
 **Current status remains BLOCKED:** research identified plausible sources, but no binary asset has yet been downloaded, reviewed or committed to this repository.
+
+## Android quality profile implementation (2026-11-08)
+
+- Added a graphics-profile selector to the pause menu: HIGH → MEDIUM → LOW → HIGH.
+- The selected profile is saved in `user://world.cfg` and restored on next launch.
+- HIGH keeps full detail density, directional shadows to 84 m and 420 rain particles.
+- MEDIUM scales grass/shrub detail instances to 72%, keeps shadows with a 56 m distance and uses 260 rain particles.
+- LOW scales grass/shrub detail instances to 45%, disables directional shadows and uses 120 rain particles.
+- Switching profiles rebuilds currently streamed chunks so the vegetation density takes effect immediately.
+- This is an initial adaptive-quality control, not a completed device-adaptive system. Terrain resolution, chunk load radius, texture/LOD budgets and thermal adaptation are not yet profile-controlled. Actual Android FPS/memory/thermal measurements remain OPEN.
