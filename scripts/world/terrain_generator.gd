@@ -6,7 +6,7 @@ static func height_at(noise: FastNoiseLite, world_x: float, world_z: float, vill
 	var raw_height := noise.get_noise_2d(world_x, world_z) * 6.0
 	var detail_height := noise.get_noise_2d(world_x * 2.7 + 173.0, world_z * 2.7 - 91.0) * 1.15
 	var distance := Vector2(world_x, world_z).distance_to(village_center)
-	var blend := clamp((distance - flat_radius) / maxf(falloff, 0.01), 0.0, 1.0)
+	var blend: float = clampf((distance - flat_radius) / maxf(falloff, 0.01), 0.0, 1.0)
 	blend = blend * blend * (3.0 - 2.0 * blend)
 	return (raw_height + detail_height) * blend
 
@@ -41,7 +41,7 @@ static func _vertex(noise: FastNoiseLite, origin: Vector2, local_x: float, local
 	return Vector3(local_x, y, local_z)
 
 static func _add_vertex(surface: SurfaceTool, point: Vector3, base_color: Color, chunk_size: float) -> void:
-	var rock_factor := clamp((point.y - 2.0) / 7.0, 0.0, 0.72)
+	var rock_factor: float = clampf((point.y - 2.0) / 7.0, 0.0, 0.72)
 	var vertex_color := base_color.lerp(Color(0.43, 0.43, 0.40), rock_factor)
 	if point.y < -1.5:
 		vertex_color = vertex_color.lerp(Color(0.22, 0.34, 0.23), 0.28)
