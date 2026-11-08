@@ -2,7 +2,7 @@ extends RefCounted
 class_name VillageAssetGenerator
 
 # Lightweight stylized environment assets. All placements are deterministic per chunk.
-static func add_chunk_detail(root: Node3D, biome: String, rng: RandomNumberGenerator, cx: int, cz: int, chunk_size: float, height_sampler: Callable) -> void:
+static func add_chunk_detail(root: Node3D, biome: String, rng: RandomNumberGenerator, cx: int, cz: int, chunk_size: float, height_sampler: Callable, density_scale: float = 1.0) -> void:
 	if biome == "dryland":
 		return
 
@@ -13,7 +13,8 @@ static func add_chunk_detail(root: Node3D, biome: String, rng: RandomNumberGener
 		Color(0.38, 0.56, 0.24),
 		Color(0.48, 0.59, 0.27)
 	]
-	var grass_count := 42 if biome == "highland" else 64
+	var grass_base_count := 42 if biome == "highland" else 64
+	var grass_count := maxi(12, roundi(float(grass_base_count) * density_scale))
 	for i in range(grass_count):
 		var x := rng.randf_range(3.0, chunk_size - 3.0)
 		var z := rng.randf_range(3.0, chunk_size - 3.0)
@@ -53,7 +54,8 @@ static func add_chunk_detail(root: Node3D, biome: String, rng: RandomNumberGener
 
 	var shrub_transforms: Array[Transform3D] = []
 	var shrub_colors: Array[Color] = []
-	var shrub_count := 7 if biome == "highland" else 11
+	var shrub_base_count := 7 if biome == "highland" else 11
+	var shrub_count := maxi(2, roundi(float(shrub_base_count) * density_scale))
 	for i in range(shrub_count):
 		var x := rng.randf_range(5.0, chunk_size - 5.0)
 		var z := rng.randf_range(5.0, chunk_size - 5.0)
