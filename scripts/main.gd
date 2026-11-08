@@ -837,6 +837,7 @@ func _build_player() -> void:
 	hat_band_mesh.height = 0.045
 	var hat_band := _make_piece(character_visual, "ExplorerHatBand", hat_band_mesh, Vector3(0, 2.24, 0), _material(Color(0.72, 0.43, 0.18)))
 	character_hat_parts = [hat_top, hat_brim, hat_band]
+	_apply_hat_style()
 
 	var arm_mesh := CapsuleMesh.new()
 	arm_mesh.radius = 0.105
