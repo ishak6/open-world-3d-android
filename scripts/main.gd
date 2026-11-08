@@ -54,7 +54,7 @@ const MAX_STAMINA := 100.0
 const STAMINA_DRAIN := 22.0
 const STAMINA_RECOVERY := 19.0
 var joystick: Control
-var joystick_knob: ColorRect
+var joystick_knob: Panel
 var joystick_active := false
 var current_chunk := Vector2i(999999, 999999)
 var loaded_chunks: Dictionary = {}
@@ -1074,17 +1074,28 @@ func _build_hud() -> void:
 	joystick.offset_bottom = -24
 	joystick.gui_input.connect(_on_joystick_input)
 	hud.add_child(joystick)
-	var base := ColorRect.new()
+	joystick.mouse_filter = Control.MOUSE_FILTER_STOP
+	var base := Panel.new()
 	base.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	base.position = Vector2(8, 8)
 	base.size = Vector2(144, 144)
-	base.color = Color(0.10, 0.20, 0.27, 0.58)
+	var base_style := StyleBoxFlat.new()
+	base_style.bg_color = Color(0.035, 0.12, 0.18, 0.62)
+	base_style.set_corner_radius_all(72)
+	base_style.set_border_width_all(2)
+	base_style.border_color = Color(0.46, 0.76, 0.86, 0.72)
+	base.add_theme_stylebox_override("panel", base_style)
 	joystick.add_child(base)
-	joystick_knob = ColorRect.new()
+	joystick_knob = Panel.new()
 	joystick_knob.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	joystick_knob.position = Vector2(54, 54)
 	joystick_knob.size = Vector2(52, 52)
-	joystick_knob.color = Color(0.76, 0.89, 0.96, 0.88)
+	var knob_style := StyleBoxFlat.new()
+	knob_style.bg_color = Color(0.76, 0.89, 0.96, 0.92)
+	knob_style.set_corner_radius_all(26)
+	knob_style.set_border_width_all(2)
+	knob_style.border_color = Color(0.95, 0.99, 1.0, 0.95)
+	joystick_knob.add_theme_stylebox_override("panel", knob_style)
 	joystick.add_child(joystick_knob)
 
 	var run_button := _make_button("RUN", Vector2(-166, -166), Vector2(142, 62))
