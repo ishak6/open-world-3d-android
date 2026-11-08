@@ -82,6 +82,8 @@ var outfit_index := 0
 var hair_index := 0
 var hair_style_index := 0
 var face_shape_index := 0
+var hat_style_index := 0
+var character_hat_parts: Array[MeshInstance3D] = []
 var pants_index := 0
 var world_save_timer := 0.0
 var pants_palette := [Color(0.10, 0.14, 0.22), Color(0.22, 0.24, 0.28), Color(0.30, 0.20, 0.12), Color(0.08, 0.22, 0.20)]
@@ -784,6 +786,14 @@ func _build_player() -> void:
 	nose_mesh.radius = 0.055
 	nose_mesh.height = 0.09
 	_make_piece(character_visual, "Nose", nose_mesh, Vector3(0, 1.84, -0.27), skin_mat)
+	var brow_mesh := BoxMesh.new()
+	brow_mesh.size = Vector3(0.085, 0.025, 0.035)
+	var brow_mat := _material(Color(0.075, 0.045, 0.03))
+	_make_piece(character_visual, "LeftEyebrow", brow_mesh, Vector3(-0.095, 1.985, -0.245), brow_mat)
+	_make_piece(character_visual, "RightEyebrow", brow_mesh, Vector3(0.095, 1.985, -0.245), brow_mat)
+	var mouth_mesh := BoxMesh.new()
+	mouth_mesh.size = Vector3(0.075, 0.018, 0.018)
+	_make_piece(character_visual, "Mouth", mouth_mesh, Vector3(0, 1.765, -0.285), _material(Color(0.24, 0.075, 0.065)))
 	var neck_mesh := CylinderMesh.new()
 	neck_mesh.top_radius = 0.12
 	neck_mesh.bottom_radius = 0.14
@@ -791,7 +801,42 @@ func _build_player() -> void:
 	_make_piece(character_visual, "Neck", neck_mesh, Vector3(0, 1.58, 0), skin_mat)
 	var backpack_mesh := BoxMesh.new()
 	backpack_mesh.size = Vector3(0.42, 0.55, 0.22)
-	_make_piece(character_visual, "Backpack", backpack_mesh, Vector3(0, 1.12, 0.30), _material(Color(0.32, 0.20, 0.10)))
+	_make_piece(character_visual, "Backpack", backpack_mesh, Vector3(0, 1.12, 0.30), _material(Color(0.25, 0.17, 0.10)))
+	var strap_mesh := BoxMesh.new()
+	strap_mesh.size = Vector3(0.085, 0.72, 0.075)
+	var strap_mat := _material(Color(0.68, 0.48, 0.25))
+	_make_piece(character_visual, "BackpackStrapLeft", strap_mesh, Vector3(-0.22, 1.22, -0.285), strap_mat)
+	_make_piece(character_visual, "BackpackStrapRight", strap_mesh, Vector3(0.22, 1.22, -0.285), strap_mat)
+	var zipper_mesh := BoxMesh.new()
+	zipper_mesh.size = Vector3(0.025, 0.68, 0.025)
+	_make_piece(character_visual, "JacketZipper", zipper_mesh, Vector3(0, 1.12, -0.355), _material(Color(0.82, 0.72, 0.48)))
+	var belt_mesh := BoxMesh.new()
+	belt_mesh.size = Vector3(0.64, 0.12, 0.39)
+	_make_piece(character_visual, "ExplorerBelt", belt_mesh, Vector3(0, 0.77, 0), _material(Color(0.28, 0.17, 0.09)))
+	var buckle_mesh := BoxMesh.new()
+	buckle_mesh.size = Vector3(0.12, 0.10, 0.035)
+	_make_piece(character_visual, "BeltBuckle", buckle_mesh, Vector3(0, 0.77, -0.205), _material(Color(0.88, 0.66, 0.25)))
+	var scarf_mesh := TorusMesh.new()
+	scarf_mesh.inner_radius = 0.105
+	scarf_mesh.outer_radius = 0.17
+	scarf_mesh.rings = 8
+	scarf_mesh.ring_segments = 12
+	_make_piece(character_visual, "NeckScarf", scarf_mesh, Vector3(0, 1.57, 0), _material(Color(0.82, 0.30, 0.16)))
+	var hat_crown := SphereMesh.new()
+	hat_crown.radius = 0.27
+	hat_crown.height = 0.28
+	var hat_top := _make_piece(character_visual, "ExplorerHatCrown", hat_crown, Vector3(0, 2.25, 0), _material(Color(0.30, 0.22, 0.13)))
+	var hat_brim_mesh := CylinderMesh.new()
+	hat_brim_mesh.top_radius = 0.34
+	hat_brim_mesh.bottom_radius = 0.34
+	hat_brim_mesh.height = 0.055
+	var hat_brim := _make_piece(character_visual, "ExplorerHatBrim", hat_brim_mesh, Vector3(0, 2.17, 0), _material(Color(0.24, 0.17, 0.10)))
+	var hat_band_mesh := CylinderMesh.new()
+	hat_band_mesh.top_radius = 0.255
+	hat_band_mesh.bottom_radius = 0.255
+	hat_band_mesh.height = 0.045
+	var hat_band := _make_piece(character_visual, "ExplorerHatBand", hat_band_mesh, Vector3(0, 2.24, 0), _material(Color(0.72, 0.43, 0.18)))
+	character_hat_parts = [hat_top, hat_brim, hat_band]
 
 	var arm_mesh := CapsuleMesh.new()
 	arm_mesh.radius = 0.105
@@ -825,8 +870,15 @@ func _build_player() -> void:
 	var shoe_mesh := BoxMesh.new()
 	shoe_mesh.size = Vector3(0.30, 0.16, 0.44)
 	var shoe_mat := _material(Color(0.055, 0.06, 0.075))
-	_make_piece(left_leg_pivot, "LeftShoe", shoe_mesh, Vector3(0, -0.73, -0.07), shoe_mat)
-	_make_piece(right_leg_pivot, "RightShoe", shoe_mesh, Vector3(0, -0.73, -0.07), shoe_mat)
+	shoe_mesh.size = Vector3(0.32, 0.22, 0.46)
+	_make_piece(left_leg_pivot, "LeftExplorerBoot", shoe_mesh, Vector3(0, -0.72, -0.07), shoe_mat)
+	_make_piece(right_leg_pivot, "RightExplorerBoot", shoe_mesh, Vector3(0, -0.72, -0.07), shoe_mat)
+	var glove_mesh := SphereMesh.new()
+	glove_mesh.radius = 0.12
+	glove_mesh.height = 0.20
+	var glove_mat := _material(Color(0.20, 0.16, 0.12))
+	_make_piece(left_arm_pivot, "LeftGlove", glove_mesh, Vector3(0, -0.68, 0), glove_mat)
+	_make_piece(right_arm_pivot, "RightGlove", glove_mesh, Vector3(0, -0.68, 0), glove_mat)
 
 	animation_player = AnimationPlayer.new()
 	animation_player.name = "CharacterAnimationPlayer"
@@ -875,9 +927,11 @@ func _load_character_appearance() -> void:
 		hair_index = int(config.get_value("appearance", "hair_index", 0)) % hair_palette.size()
 		hair_style_index = int(config.get_value("appearance", "hair_style", 0)) % 4
 		face_shape_index = int(config.get_value("appearance", "face_shape", 0)) % 3
+		hat_style_index = int(config.get_value("appearance", "hat_style", 0)) % 3
 		pants_index = int(config.get_value("appearance", "pants_index", 0)) % pants_palette.size()
 		_apply_hair_style()
 		_apply_face_shape()
+		_apply_hat_style()
 
 func _apply_character_colors(skin: Color, shirt: Color, pants: Color) -> void:
 	character_skin.albedo_color = skin
@@ -895,6 +949,7 @@ func _save_character_appearance() -> void:
 	config.set_value("appearance", "hair_index", hair_index)
 	config.set_value("appearance", "hair_style", hair_style_index)
 	config.set_value("appearance", "face_shape", face_shape_index)
+	config.set_value("appearance", "hat_style", hat_style_index)
 	config.set_value("appearance", "pants_index", pants_index)
 	config.save("user://character.cfg")
 
@@ -920,6 +975,22 @@ func _apply_face_shape() -> void:
 func _cycle_face_shape() -> void:
 	face_shape_index = (face_shape_index + 1) % 3
 	_apply_face_shape()
+	_save_character_appearance()
+
+
+func _apply_hat_style() -> void:
+	for part in character_hat_parts:
+		if is_instance_valid(part):
+			part.visible = hat_style_index != 0
+	if character_hat_parts.size() == 3:
+		# Explorer cap (1) and broad-brim field hat (2) share lightweight meshes.
+		character_hat_parts[0].scale = Vector3(0.92, 0.78, 0.92) if hat_style_index == 1 else Vector3(1.0, 1.0, 1.0)
+		character_hat_parts[1].scale = Vector3(0.78, 0.8, 0.78) if hat_style_index == 1 else Vector3(1.22, 0.9, 1.22)
+		character_hat_parts[2].visible = hat_style_index == 2
+
+func _cycle_hat_style() -> void:
+	hat_style_index = (hat_style_index + 1) % 3
+	_apply_hat_style()
 	_save_character_appearance()
 
 func _cycle_pants() -> void:
@@ -1119,6 +1190,9 @@ func _build_creator_and_map(hud: CanvasLayer) -> void:
 	var outfit_button := _make_button("SHIRT COLOR  •  CHANGE", Vector2.ZERO, Vector2(370, 42))
 	creator_box.add_child(outfit_button)
 	outfit_button.pressed.connect(_cycle_outfit)
+	var hat_button := _make_button("EXPLORER HAT  •  CYCLE STYLE", Vector2.ZERO, Vector2(370, 42))
+	creator_box.add_child(hat_button)
+	hat_button.pressed.connect(_cycle_hat_style)
 	var pants_button := _make_button("TROUSER COLOR  •  CHANGE", Vector2.ZERO, Vector2(370, 42))
 	creator_box.add_child(pants_button)
 	pants_button.pressed.connect(_cycle_pants)
