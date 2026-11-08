@@ -49,6 +49,9 @@ var sprint_recovery_timer := 0.0
 var status_label: Label
 var chunk_label: Label
 var stamina_label: Label
+var performance_label: Label
+var performance_sample_timer := 0.0
+var performance_frame_count := 0
 var stamina := 100.0
 const MAX_STAMINA := 100.0
 const STAMINA_DRAIN := 22.0
@@ -298,6 +301,7 @@ func _cycle_weather() -> void:
 
 func _process(delta: float) -> void:
 	_update_day_night(delta)
+	_update_performance_monitor(delta)
 	world_save_timer += delta
 	if world_save_timer >= 15.0:
 		world_save_timer = 0.0
@@ -318,6 +322,19 @@ func _process(delta: float) -> void:
 			villager_phases[i] += delta
 			villager_nodes[i].rotation.y = sin(villager_phases[i] * 0.35) * 0.12
 			villager_nodes[i].position.y = sin(villager_phases[i] * 1.8) * 0.025
+
+func _update_performance_monitor(delta: float) -> void:
+	if performance_label == null:
+		return
+	performance_sample_timer += delta
+	performance_frame_count += 1
+	if performance_sample_timer >= 0.5:
+		var fps := float(performance_frame_count) / performance_sample_timer
+		var frame_ms := 1000.0 / maxf(fps, 0.1)
+		performance_label.text = "ANDROID PERF  %d FPS  •  %.1f ms" % [roundi(fps), frame_ms]
+		performance_label.add_theme_color_override("font_color", Color(0.55, 0.91, 0.66) if fps >= 30.0 else Color(1.0, 0.65, 0.35))
+		performance_sample_timer = 0.0
+		performance_frame_count = 0
 
 func _notification(what: int) -> void:
 	if what == NOTIFICATION_WM_CLOSE_REQUEST or what == NOTIFICATION_APPLICATION_FOCUS_OUT:
@@ -1008,6 +1025,9 @@ func _build_player() -> void:
 	# Negative X pitch aims the camera down toward the player and terrain.
 	camera.current = true
 	camera_pivot.add_child(camera)
+	var spatial_audio_listener := AudioListener3D.new()
+	spatial_audio_listener.name = "SpatialAudioListener"
+	camera.add_child(spatial_audio_listener)
 	camera_rig.global_position = player.global_position
 	_load_character_appearance()
 
@@ -1139,6 +1159,11 @@ func _build_hud() -> void:
 	stamina_label.add_theme_font_size_override("font_size", 12)
 	stamina_label.add_theme_color_override("font_color", Color(0.55, 0.91, 0.66))
 	top_column.add_child(stamina_label)
+	performance_label = Label.new()
+	performance_label.text = "ANDROID PERF  -- FPS"
+	performance_label.add_theme_font_size_override("font_size", 12)
+	performance_label.add_theme_color_override("font_color", Color(0.72, 0.84, 0.96))
+	top_column.add_child(performance_label)
 	var help := Label.new()
 	help.text = "LEFT STICK: MOVE   •   DRAG RIGHT SIDE: LOOK"
 	help.position = Vector2(20, 100)
