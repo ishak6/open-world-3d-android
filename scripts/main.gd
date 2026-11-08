@@ -4,9 +4,14 @@ extends Node3D
 const WORLD_SEED := 481516
 const CHUNK_SIZE := 64.0
 const TERRAIN_RESOLUTION := 20
-const MOVE_ACCELERATION := 19.0
-const MOVE_DECELERATION := 24.0
-const TURN_RESPONSE := 10.0
+const MOVE_ACCELERATION := 24.0
+const MOVE_DECELERATION := 30.0
+const AIR_CONTROL := 0.48
+const TURN_RESPONSE := 12.0
+const JUMP_VELOCITY := 6.2
+const JUMP_BUFFER_TIME := 0.16
+const COYOTE_TIME := 0.12
+const SPRINT_RECOVERY_DELAY := 0.65
 const TerrainGenerator = preload("res://scripts/world/terrain_generator.gd")
 const AssetGenerator = preload("res://scripts/world/asset_generator.gd")
 const LOAD_RADIUS := 2
@@ -36,14 +41,18 @@ var joystick_finger := -1
 var mouse_joystick_active := false
 var look_last := Vector2.ZERO
 var is_running := false
+var is_sprinting_now := false
 var jump_requested := false
+var jump_buffer_timer := 0.0
+var coyote_timer := 0.0
+var sprint_recovery_timer := 0.0
 var status_label: Label
 var chunk_label: Label
 var stamina_label: Label
 var stamina := 100.0
 const MAX_STAMINA := 100.0
-const STAMINA_DRAIN := 24.0
-const STAMINA_RECOVERY := 17.0
+const STAMINA_DRAIN := 22.0
+const STAMINA_RECOVERY := 19.0
 var joystick: Control
 var joystick_knob: ColorRect
 var joystick_active := false
@@ -740,6 +749,10 @@ func _build_player() -> void:
 	player = CharacterBody3D.new()
 	player.name = "Player"
 	player.position = Vector3(32, 2, 51)
+	player.floor_snap_length = 0.38
+	player.floor_max_angle = deg_to_rad(48.0)
+	player.floor_stop_on_slope = true
+	player.safe_margin = 0.04
 	character_visual = Node3D.new()
 	character_visual.name = "CharacterVisual"
 	player.add_child(character_visual)
@@ -1343,6 +1356,9 @@ func _toggle_pause() -> void:
 	get_tree().paused = is_paused
 	if is_paused:
 		is_running = false
+		is_sprinting_now = false
+		jump_requested = false
+		jump_buffer_timer = 0.0
 		move_vector = Vector2.ZERO
 		joystick_active = false
 		joystick_finger = -1
@@ -1462,7 +1478,7 @@ func _update_character_animation(_delta: float) -> void:
 			next_animation = "Land"
 			landing_timer = maxf(0.0, landing_timer - _delta)
 		elif horizontal_speed > 0.45:
-			next_animation = "Run" if is_running and horizontal_speed > WALK_SPEED * 0.65 else "Walk"
+			next_animation = "Run" if is_sprinting_now and horizontal_speed > WALK_SPEED * 0.65 else "Walk"
 	was_on_floor = on_floor
 	if next_animation != active_animation:
 		active_animation = next_animation
@@ -1492,9 +1508,14 @@ func _update_character_animation(_delta: float) -> void:
 func _physics_process(delta: float) -> void:
 	if player == null or is_paused:
 		return
+
+	# Preserve analog stick magnitude for fine control, while preventing diagonal boost.
 	var keyboard := Input.get_vector("ui_left", "ui_right", "ui_up", "ui_down")
 	var input_vector := move_vector if move_vector.length() > 0.08 else keyboard
+	input_vector = input_vector.limit_length(1.0)
 	var input_strength := clampf(input_vector.length(), 0.0, 1.0)
+
+	# Camera-relative movement remains stable on uneven terrain.
 	var camera_forward := -camera_pivot.global_transform.basis.z
 	camera_forward.y = 0.0
 	camera_forward = camera_forward.normalized()
@@ -1502,37 +1523,68 @@ func _physics_process(delta: float) -> void:
 	camera_right.y = 0.0
 	camera_right = camera_right.normalized()
 	var direction := (camera_right * input_vector.x + camera_forward * -input_vector.y).normalized()
-	var sprinting := is_running and input_strength > 0.08 and stamina > 0.0
-	if sprinting:
+
+	# Sprint drains stamina; recovery begins only after a short rest window.
+	is_sprinting_now = is_running and input_strength > 0.08 and stamina > 0.1
+	if is_sprinting_now:
 		stamina = maxf(0.0, stamina - STAMINA_DRAIN * delta)
+		sprint_recovery_timer = SPRINT_RECOVERY_DELAY
+		if stamina <= 0.0:
+			is_sprinting_now = false
+			is_running = false
 	else:
-		stamina = minf(MAX_STAMINA, stamina + STAMINA_RECOVERY * delta)
-	if stamina <= 0.0:
-		is_running = false
-	var target_speed := RUN_SPEED if sprinting else WALK_SPEED
+		sprint_recovery_timer = maxf(0.0, sprint_recovery_timer - delta)
+		if sprint_recovery_timer <= 0.0:
+			stamina = minf(MAX_STAMINA, stamina + STAMINA_RECOVERY * delta)
+
+	var target_speed := RUN_SPEED if is_sprinting_now else WALK_SPEED
 	var target_velocity := Vector2(direction.x, direction.z) * target_speed * input_strength
-	if stamina_label:
-		stamina_label.text = "STAMINA  %d%%" % int(round(stamina))
-		stamina_label.add_theme_color_override("font_color", Color(0.98, 0.62, 0.38) if stamina < 25.0 else Color(0.55, 0.91, 0.66))
-	var response := MOVE_ACCELERATION if input_strength > 0.08 else MOVE_DECELERATION
+	var has_move_input := input_strength > 0.08
+	var response := MOVE_ACCELERATION if has_move_input else MOVE_DECELERATION
+	if not player.is_on_floor():
+		response *= AIR_CONTROL
 	horizontal_velocity = horizontal_velocity.move_toward(target_velocity, response * delta)
 	player.velocity.x = horizontal_velocity.x
 	player.velocity.z = horizontal_velocity.y
-	if input_strength > 0.08 and direction.length() > 0.01:
+
+	if has_move_input and direction.length() > 0.01:
 		var target_yaw := atan2(-direction.x, -direction.z)
 		player.rotation.y = lerp_angle(player.rotation.y, target_yaw, 1.0 - exp(-TURN_RESPONSE * delta))
-	camera_rig.global_position = player.global_position
-	if not player.is_on_floor():
-		player.velocity.y -= GRAVITY * delta
-	elif jump_requested:
-		player.velocity.y = 6.0
+
+	# Buffered jump + coyote time make touch controls more forgiving at ledges.
+	if jump_requested:
+		jump_buffer_timer = JUMP_BUFFER_TIME
+	else:
+		jump_buffer_timer = maxf(0.0, jump_buffer_timer - delta)
 	jump_requested = false
+	if player.is_on_floor():
+		coyote_timer = COYOTE_TIME
+	else:
+		coyote_timer = maxf(0.0, coyote_timer - delta)
+
+	if jump_buffer_timer > 0.0 and coyote_timer > 0.0:
+		player.velocity.y = JUMP_VELOCITY
+		jump_buffer_timer = 0.0
+		coyote_timer = 0.0
+	elif not player.is_on_floor():
+		player.velocity.y -= GRAVITY * delta
+
+	if stamina_label:
+		stamina_label.text = "STAMINA  %d%%" % int(round(stamina))
+		stamina_label.add_theme_color_override("font_color", Color(0.98, 0.62, 0.38) if stamina < 25.0 else Color(0.55, 0.91, 0.66))
+
 	player.move_and_slide()
-	camera_rig.global_position = player.global_position
+	# Exponential smoothing removes camera snapping without adding frame-rate dependence.
+	var follow_weight := 1.0 - exp(-14.0 * delta)
+	camera_rig.global_position = camera_rig.global_position.lerp(player.global_position, follow_weight)
+
 	if player.global_position.y < -20.0:
 		player.global_position = Vector3(current_chunk.x * CHUNK_SIZE + 32, 3, current_chunk.y * CHUNK_SIZE + 32)
 		player.velocity = Vector3.ZERO
 		horizontal_velocity = Vector2.ZERO
+		jump_buffer_timer = 0.0
+		coyote_timer = 0.0
+		camera_rig.global_position = player.global_position
 	_update_chunks()
 	_update_character_animation(delta)
 	if player_marker and is_instance_valid(player_marker):
