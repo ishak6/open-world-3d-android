@@ -91,3 +91,20 @@ The following nine deliverables are now tracked as explicit acceptance items. A 
 - Artifact `VillageFrontier-Android-debug` uploaded (artifact ID `13627388987`, approximately 25.7 MiB; expires 2026-11-22).
 - Workflow job steps and artifact upload completed successfully. GitHub still reported the run as `in_progress` during final container cleanup when checked; do not label the workflow conclusion final until GitHub reports `completed/success`.
 - These checks establish import, headless startup and APK packaging only. They do not establish visual correctness on a physical Android device, sustained FPS, thermal stability, or photorealistic asset quality. Those acceptance items remain OPEN/PARTIAL as listed above.
+
+## Asset sourcing research (2026-11-08) — candidates, not yet imported
+
+The repository currently contains no GLB/GLTF character or tree assets. The following sources were checked as potential legal inputs; none is counted as integrated until the actual downloaded files, licence evidence and Godot import tests are committed.
+
+- **Human generation candidate — Ara 3D Gen:** https://ara3dgen.com/ . Its published page describes realistic MakeHuman-based characters, detail levels from approximately 5k to 120k triangles, GLB/FBX/OBJ export, Mixamo-named rigs, face bones, blend shapes and 117 animations. The project code is published under MIT; character data is described as CC0 MakeHuman data and motion capture is attributed to CMU Graphics Lab. Candidate for producing the hero model, subject to checking the exact exported asset metadata/licences and Android material compatibility. It is a generator, not a prebuilt project asset.
+- **Tree candidate — Polyy.AI 3D Deciduous Trees Pack:** https://polyyai.itch.io/3d-deciduous-trees-pack . The publisher lists 14 GLB trees with PBR textures and CC0 1.0, but the download is approximately 116 MB. Candidate only; select a small subset, inspect texture dimensions/triangle counts, create LODs and profile on Android before shipping.
+- **Rejected for the realistic hero requirement:** low-poly CC0 packs such as Gobkit Freebies provide rigged GLBs but are explicitly low-poly/baked-color assets; they may serve as distant NPC placeholders, not as the realistic close-up player character.
+
+### Asset import gate
+1. Obtain the actual GLB/GLTF and its licence file/source page record.
+2. Inspect mesh triangle count, skeleton hierarchy, animation tracks, UVs, texture channels and texture sizes.
+3. Import in the project's Godot 4.4.1 GL Compatibility pipeline; resolve unsupported materials/features.
+4. Add LODs and texture budgets before placing assets in streamed chunks.
+5. Run import + headless smoke + Android export, then validate the asset visually on a physical Android device.
+
+**Current status remains BLOCKED:** research identified plausible sources, but no binary asset has yet been downloaded, reviewed or committed to this repository.
