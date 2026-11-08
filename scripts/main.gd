@@ -481,7 +481,7 @@ func _add_chunk_vegetation(root: Node3D, biome: String, rng: RandomNumberGenerat
 			var scale_value := rng.randf_range(0.82, 1.22)
 			var transform_basis := Basis().scaled(Vector3.ONE * scale_value)
 			tree_transforms.append(Transform3D(transform_basis, Vector3(local_x, ground_y + 1.55 * scale_value, local_z)))
-			crown_colors.append(leaf_colors[rng.randi_range(0, leaf_colors.size() - 1)))
+			crown_colors.append(leaf_colors[rng.randi_range(0, leaf_colors.size() - 1)])
 	if not tree_transforms.is_empty():
 		var trunk_mesh := CylinderMesh.new()
 		trunk_mesh.top_radius = 0.22
