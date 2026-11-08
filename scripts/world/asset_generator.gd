@@ -13,7 +13,7 @@ static func add_chunk_detail(root: Node3D, biome: String, rng: RandomNumberGener
 		Color(0.38, 0.56, 0.24),
 		Color(0.48, 0.59, 0.27)
 	]
-	var grass_count := 24 if biome == "highland" else 34
+	var grass_count := 42 if biome == "highland" else 64
 	for i in range(grass_count):
 		var x := rng.randf_range(3.0, chunk_size - 3.0)
 		var z := rng.randf_range(3.0, chunk_size - 3.0)
@@ -53,7 +53,7 @@ static func add_chunk_detail(root: Node3D, biome: String, rng: RandomNumberGener
 
 	var shrub_transforms: Array[Transform3D] = []
 	var shrub_colors: Array[Color] = []
-	var shrub_count := 4 if biome == "highland" else 7
+	var shrub_count := 7 if biome == "highland" else 11
 	for i in range(shrub_count):
 		var x := rng.randf_range(5.0, chunk_size - 5.0)
 		var z := rng.randf_range(5.0, chunk_size - 5.0)
