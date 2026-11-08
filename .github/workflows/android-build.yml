@@ -86,11 +86,39 @@ jobs:
           GODOT_ANDROID_KEYSTORE_DEBUG_USER: androiddebugkey
           GODOT_ANDROID_KEYSTORE_DEBUG_PASSWORD: android
 
-      - name: Import project resources
-        run: godot --headless --path . --editor --import --quit
+      - name: Import project resources and fail on script errors
+        shell: bash
+        run: |
+          set +e
+          godot --headless --path . --editor --import --quit > /tmp/godot-import.log 2>&1
+          godot_status=$?
+          set -e
+          cat /tmp/godot-import.log
+          if [ "$godot_status" -ne 0 ]; then
+            echo "::error::Godot resource import failed (exit $godot_status)."
+            exit "$godot_status"
+          fi
+          if grep -Eiq 'SCRIPT ERROR|Parse Error|Failed to load script|ERROR:' /tmp/godot-import.log; then
+            echo "::error::Godot reported a script/resource error during import."
+            exit 1
+          fi
 
-      - name: Smoke test the main scene
-        run: timeout 60s godot --headless --path . --quit-after 10
+      - name: Smoke test the main scene and fail on script errors
+        shell: bash
+        run: |
+          set +e
+          timeout 60s godot --headless --path . --quit-after 10 > /tmp/godot-smoke.log 2>&1
+          godot_status=$?
+          set -e
+          cat /tmp/godot-smoke.log
+          if [ "$godot_status" -ne 0 ]; then
+            echo "::error::Godot main-scene smoke test failed (exit $godot_status)."
+            exit "$godot_status"
+          fi
+          if grep -Eiq 'SCRIPT ERROR|Parse Error|Failed to load script|ERROR:' /tmp/godot-smoke.log; then
+            echo "::error::Godot reported a script/runtime error during the main-scene smoke test."
+            exit 1
+          fi
 
       - name: Export Android APK
         run: |
