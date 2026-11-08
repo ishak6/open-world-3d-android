@@ -78,3 +78,16 @@ The following nine deliverables are now tracked as explicit acceptance items. A 
 - High tier: 8 GB+ RAM / stronger GPU, 45–60 FPS target where thermals permit.
 - Capture average FPS, 1% low (external profiler), frame time, memory, thermal state, chunk transition hitching, audio latency and battery drain.
 - Run at least 10 minutes per tier after warm-up; repeat in clear, rain and night conditions.
+
+## Latest verified CI evidence (2026-11-08)
+
+- Workflow run: [Run #90](https://github.com/ishak6/open-world-3d-android/actions/runs/42506606409)
+- Commit: `fd4d3be8f8a100c094ddc4a5cacfe4ac2032bd2c` — fixed a missing closing parenthesis in the water shader's generated normal expression.
+- Godot resource import: PASS.
+- Main-scene headless smoke test: PASS.
+- Android debug APK export: PASS.
+- APK archive integrity and Android manifest/native library checks: PASS.
+- APK signature verification: PASS.
+- Artifact `VillageFrontier-Android-debug` uploaded (artifact ID `13627388987`, approximately 25.7 MiB; expires 2026-11-22).
+- Workflow job steps and artifact upload completed successfully. GitHub still reported the run as `in_progress` during final container cleanup when checked; do not label the workflow conclusion final until GitHub reports `completed/success`.
+- These checks establish import, headless startup and APK packaging only. They do not establish visual correctness on a physical Android device, sustained FPS, thermal stability, or photorealistic asset quality. Those acceptance items remain OPEN/PARTIAL as listed above.
