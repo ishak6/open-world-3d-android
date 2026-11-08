@@ -784,12 +784,24 @@ func _build_player() -> void:
 	var side_left := _make_piece(character_visual, "HairSideLeft", side_hair_mesh, Vector3(-0.235, 1.94, 0), hair_mat)
 	var side_right := _make_piece(character_visual, "HairSideRight", side_hair_mesh, Vector3(0.235, 1.94, 0), hair_mat)
 	character_hair_sides = [side_left, side_right]
-	var eye_mesh := SphereMesh.new()
-	eye_mesh.radius = 0.027
-	eye_mesh.height = 0.045
-	var eye_mat := _material(Color(0.025, 0.025, 0.03))
-	_make_piece(character_visual, "EyeLeft", eye_mesh, Vector3(-0.095, 1.91, -0.235), eye_mat)
-	_make_piece(character_visual, "EyeRight", eye_mesh, Vector3(0.095, 1.91, -0.235), eye_mat)
+	# Layered eyes: visible sclera, iris and pupil instead of tiny dark dots.
+	var eye_white_mesh := SphereMesh.new()
+	eye_white_mesh.radius = 0.052
+	eye_white_mesh.height = 0.075
+	var eye_white_mat := _material(Color(0.92, 0.88, 0.78), 0.42)
+	var iris_mesh := SphereMesh.new()
+	iris_mesh.radius = 0.027
+	iris_mesh.height = 0.043
+	var iris_mat := _material(Color(0.24, 0.14, 0.075), 0.32)
+	var pupil_mesh := SphereMesh.new()
+	pupil_mesh.radius = 0.013
+	pupil_mesh.height = 0.023
+	var pupil_mat := _material(Color(0.012, 0.010, 0.009), 0.18)
+	for side in [-1.0, 1.0]:
+		var eye_x: float = side * 0.095
+		_make_piece(character_visual, "EyeWhite", eye_white_mesh, Vector3(eye_x, 1.91, -0.236), eye_white_mat)
+		_make_piece(character_visual, "EyeIris", iris_mesh, Vector3(eye_x, 1.91, -0.282), iris_mat)
+		_make_piece(character_visual, "EyePupil", pupil_mesh, Vector3(eye_x, 1.91, -0.305), pupil_mat)
 	var ear_mesh := SphereMesh.new()
 	ear_mesh.radius = 0.075
 	ear_mesh.height = 0.14
@@ -807,6 +819,15 @@ func _build_player() -> void:
 	var mouth_mesh := BoxMesh.new()
 	mouth_mesh.size = Vector3(0.075, 0.018, 0.018)
 	_make_piece(character_visual, "Mouth", mouth_mesh, Vector3(0, 1.765, -0.285), _material(Color(0.24, 0.075, 0.065)))
+	var lower_lip_mesh := BoxMesh.new()
+	lower_lip_mesh.size = Vector3(0.065, 0.012, 0.012)
+	_make_piece(character_visual, "LowerLip", lower_lip_mesh, Vector3(0, 1.748, -0.282), _material(Color(0.48, 0.20, 0.17)))
+	var collar_mesh := TorusMesh.new()
+	collar_mesh.inner_radius = 0.12
+	collar_mesh.outer_radius = 0.19
+	collar_mesh.rings = 10
+	collar_mesh.ring_segments = 16
+	_make_piece(character_visual, "JacketCollar", collar_mesh, Vector3(0, 1.55, 0), _material(Color(0.075, 0.22, 0.48)))
 	var neck_mesh := CylinderMesh.new()
 	neck_mesh.top_radius = 0.12
 	neck_mesh.bottom_radius = 0.14
@@ -876,6 +897,14 @@ func _build_player() -> void:
 	sleeve_mesh.height = 0.48
 	_make_piece(left_arm_pivot, "LeftJacketSleeve", sleeve_mesh, Vector3(0, -0.20, 0.012), shirt_mat)
 	_make_piece(right_arm_pivot, "RightJacketSleeve", sleeve_mesh, Vector3(0, -0.20, 0.012), shirt_mat)
+	var cuff_mesh := TorusMesh.new()
+	cuff_mesh.inner_radius = 0.085
+	cuff_mesh.outer_radius = 0.12
+	cuff_mesh.rings = 8
+	cuff_mesh.ring_segments = 12
+	var cuff_mat := _material(Color(0.22, 0.16, 0.11))
+	_make_piece(left_arm_pivot, "LeftSleeveCuff", cuff_mesh, Vector3(0, -0.48, 0.012), cuff_mat)
+	_make_piece(right_arm_pivot, "RightSleeveCuff", cuff_mesh, Vector3(0, -0.48, 0.012), cuff_mat)
 
 	var leg_mesh := CapsuleMesh.new()
 	leg_mesh.radius = 0.13
@@ -890,20 +919,12 @@ func _build_player() -> void:
 	right_leg_pivot.position = Vector3(0.16, 0.82, 0)
 	character_visual.add_child(right_leg_pivot)
 	right_leg = _make_piece(right_leg_pivot, "RightLeg", leg_mesh, Vector3(0, -0.39, 0), pants_mat)
-	# Distinct boots make both feet readable from the third-person camera.
-	var boot_mesh := BoxMesh.new()
-	boot_mesh.size = Vector3(0.30, 0.20, 0.43)
-	var boot_mat := _material(Color(0.20, 0.13, 0.085))
-	_make_piece(left_leg_pivot, "LeftBoot", boot_mesh, Vector3(0, -0.72, -0.075), boot_mat)
-	_make_piece(right_leg_pivot, "RightBoot", boot_mesh, Vector3(0, -0.63, -0.075), boot_mat)
-
-	# Feet follow the animated leg pivots instead of floating in place.
+	# One correctly aligned boot per leg; avoid stacked meshes that distort the silhouette.
 	var shoe_mesh := BoxMesh.new()
-	shoe_mesh.size = Vector3(0.30, 0.16, 0.44)
-	var shoe_mat := _material(Color(0.055, 0.06, 0.075))
-	shoe_mesh.size = Vector3(0.32, 0.22, 0.46)
-	_make_piece(left_leg_pivot, "LeftExplorerBoot", shoe_mesh, Vector3(0, -0.72, -0.07), shoe_mat)
-	_make_piece(right_leg_pivot, "RightExplorerBoot", shoe_mesh, Vector3(0, -0.72, -0.07), shoe_mat)
+	shoe_mesh.size = Vector3(0.30, 0.20, 0.43)
+	var shoe_mat := _material(Color(0.075, 0.055, 0.042), 0.78)
+	_make_piece(left_leg_pivot, "LeftExplorerBoot", shoe_mesh, Vector3(0, -0.72, -0.09), shoe_mat)
+	_make_piece(right_leg_pivot, "RightExplorerBoot", shoe_mesh, Vector3(0, -0.72, -0.09), shoe_mat)
 	var glove_mesh := SphereMesh.new()
 	glove_mesh.radius = 0.12
 	glove_mesh.height = 0.20
