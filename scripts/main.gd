@@ -3,7 +3,7 @@ extends Node3D
 # Village Frontier - streamed procedural world
 const WORLD_SEED := 481516
 const CHUNK_SIZE := 64.0
-const TERRAIN_RESOLUTION := 20
+const TERRAIN_RESOLUTION := 32
 const MOVE_ACCELERATION := 24.0
 const MOVE_DECELERATION := 30.0
 const AIR_CONTROL := 0.48
@@ -20,8 +20,8 @@ const WALK_SPEED := 5.2
 const RUN_SPEED := 8.8
 const LOOK_SENSITIVITY := 0.0042
 const GRAVITY := 18.0
-const GRAPHICS_PROFILE := "MEDIUM"
-const VISUAL_STYLE := "HYBRID"
+const GRAPHICS_PROFILE := "HIGH"
+const VISUAL_STYLE := "REALISTIC"
 
 # Editable from the Main scene Inspector (script attached to VillageFrontier).
 @export_group("Camera")
