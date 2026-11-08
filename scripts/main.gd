@@ -932,6 +932,52 @@ func _build_player() -> void:
 	_make_piece(left_arm_pivot, "LeftGlove", glove_mesh, Vector3(0, -0.68, 0), glove_mat)
 	_make_piece(right_arm_pivot, "RightGlove", glove_mesh, Vector3(0, -0.68, 0), glove_mat)
 
+	# Individual finger segments and thumbs make the hands readable at gameplay distance.
+	var finger_mesh := CapsuleMesh.new()
+	finger_mesh.radius = 0.022
+	finger_mesh.height = 0.105
+	var fingertip_mesh := SphereMesh.new()
+	fingertip_mesh.radius = 0.022
+	fingertip_mesh.height = 0.044
+	for side in [-1.0, 1.0]:
+		var hand_parent: Node3D = left_arm_pivot if side < 0.0 else right_arm_pivot
+		for finger_index in range(4):
+			var finger_x: float = (float(finger_index) - 1.5) * 0.043
+			var finger := _make_piece(hand_parent, "Finger_%s_%d" % ["L" if side < 0.0 else "R", finger_index], finger_mesh, Vector3(finger_x, -0.835, -0.012), glove_mat)
+			finger.rotation.z = -0.08
+			_make_piece(hand_parent, "Fingertip_%s_%d" % ["L" if side < 0.0 else "R", finger_index], fingertip_mesh, Vector3(finger_x, -0.895, -0.012), glove_mat)
+		var thumb := _make_piece(hand_parent, "Thumb_%s" % ("L" if side < 0.0 else "R"), finger_mesh, Vector3(side * 0.125, -0.765, -0.025), glove_mat)
+		thumb.rotation.z = side * 0.72
+
+	# Tailored explorer jacket details: chest pockets, flaps and buttons.
+	var pocket_mesh := BoxMesh.new()
+	pocket_mesh.size = Vector3(0.19, 0.20, 0.035)
+	var pocket_mat := _material(Color(0.075, 0.25, 0.53), 0.88)
+	var flap_mesh := BoxMesh.new()
+	flap_mesh.size = Vector3(0.205, 0.045, 0.045)
+	var button_mesh := SphereMesh.new()
+	button_mesh.radius = 0.018
+	button_mesh.height = 0.028
+	var button_mat := _material(Color(0.72, 0.62, 0.42), 0.34)
+	for side in [-1.0, 1.0]:
+		_make_piece(character_visual, "JacketChestPocket", pocket_mesh, Vector3(side * 0.205, 1.30, -0.355), pocket_mat)
+		_make_piece(character_visual, "JacketPocketFlap", flap_mesh, Vector3(side * 0.205, 1.405, -0.378), shirt_mat)
+	for button_y in [1.43, 1.27, 1.11, 0.95]:
+		_make_piece(character_visual, "JacketButton", button_mesh, Vector3(0.035, button_y, -0.367), button_mat)
+
+	# Boot sole and lace details are attached to each animated leg pivot.
+	var sole_mesh := BoxMesh.new()
+	sole_mesh.size = Vector3(0.31, 0.045, 0.45)
+	var sole_mat := _material(Color(0.035, 0.03, 0.025), 0.94)
+	var lace_mesh := BoxMesh.new()
+	lace_mesh.size = Vector3(0.15, 0.018, 0.018)
+	var lace_mat := _material(Color(0.78, 0.70, 0.55), 0.78)
+	for side in [-1.0, 1.0]:
+		var boot_parent: Node3D = left_leg_pivot if side < 0.0 else right_leg_pivot
+		_make_piece(boot_parent, "BootSole", sole_mesh, Vector3(0, -0.825, -0.09), sole_mat)
+		for lace_index in range(3):
+			_make_piece(boot_parent, "BootLace_%d" % lace_index, lace_mesh, Vector3(0, -0.64 - float(lace_index) * 0.045, -0.315), lace_mat)
+
 	animation_player = AnimationPlayer.new()
 	animation_player.name = "CharacterAnimationPlayer"
 	animation_player.root_node = NodePath("..")
