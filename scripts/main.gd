@@ -20,7 +20,9 @@ const WALK_SPEED := 5.2
 const RUN_SPEED := 8.8
 const LOOK_SENSITIVITY := 0.0042
 const GRAVITY := 18.0
-const GRAPHICS_PROFILE := "HIGH"
+var graphics_profile := "HIGH"
+var vegetation_density_scale := 1.0
+var graphics_button: Button
 const VISUAL_STYLE := "REALISTIC"
 
 # Editable from the Main scene Inspector (script attached to VillageFrontier).
@@ -119,6 +121,8 @@ func _ready() -> void:
 	_setup_noise()
 	_build_environment()
 	_build_weather_particles()
+	_load_graphics_profile()
+	_apply_graphics_profile()
 	_build_cloud_layer()
 	_build_player()
 	_load_world_state()
@@ -288,6 +292,7 @@ func _save_world_state() -> void:
 	config.set_value("world", "player_position", player.global_position)
 	config.set_value("world", "time_of_day", time_of_day)
 	config.set_value("world", "weather_mode", weather_mode)
+	config.set_value("world", "graphics_profile", graphics_profile)
 	config.save("user://world.cfg")
 
 func _cycle_weather() -> void:
@@ -454,7 +459,7 @@ func _create_chunk(cx: int, cz: int) -> Node3D:
 		_build_starter_village(root)
 		AssetGenerator.add_village_props(root)
 	_add_chunk_vegetation(root, biome, rng, cx, cz)
-	AssetGenerator.add_chunk_detail(root, biome, rng, cx, cz, CHUNK_SIZE, Callable(self, "_world_height"))
+	AssetGenerator.add_chunk_detail(root, biome, rng, cx, cz, CHUNK_SIZE, Callable(self, "_world_height"), vegetation_density_scale)
 	return root
 
 func _add_chunk_landmarks(root: Node3D, biome: String, rng: RandomNumberGenerator, cx: int, cz: int) -> void:
@@ -1145,7 +1150,7 @@ func _build_hud() -> void:
 	top_column.add_theme_constant_override("separation", 2)
 	top_panel.add_child(top_column)
 	status_label = Label.new()
-	status_label.text = "VILLAGE FRONTIER  •  " + GRAPHICS_PROFILE
+	status_label.text = "VILLAGE FRONTIER  •  " + graphics_profile
 	status_label.add_theme_font_size_override("font_size", 18)
 	status_label.add_theme_color_override("font_color", Color(0.91, 0.96, 1))
 	top_column.add_child(status_label)
@@ -1232,7 +1237,7 @@ func _build_hud() -> void:
 	pause_panel.visible = false
 	pause_panel.set_anchors_preset(Control.PRESET_CENTER)
 	pause_panel.position = Vector2(-150, -115)
-	pause_panel.custom_minimum_size = Vector2(300, 230)
+	pause_panel.custom_minimum_size = Vector2(300, 300)
 	pause_panel.add_theme_stylebox_override("panel", _panel_style(Color(0.025, 0.07, 0.10, 0.96)))
 	hud.add_child(pause_panel)
 	var pause_box := VBoxContainer.new()
@@ -1246,6 +1251,9 @@ func _build_hud() -> void:
 	var resume_button := _make_button("RESUME", Vector2.ZERO, Vector2(250, 52))
 	pause_box.add_child(resume_button)
 	resume_button.pressed.connect(_toggle_pause)
+	graphics_button = _make_button("GRAPHICS: " + graphics_profile, Vector2.ZERO, Vector2(250, 48))
+	pause_box.add_child(graphics_button)
+	graphics_button.pressed.connect(_cycle_graphics_profile)
 	var pause_hint := Label.new()
 	pause_hint.text = "Explore the endless frontier"
 	pause_hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -1469,6 +1477,48 @@ func _reset_camera() -> void:
 	camera_pivot.rotation = Vector3.ZERO
 	camera.rotation_degrees.x = camera_pitch_degrees
 	look_finger = -1
+
+func _load_graphics_profile() -> void:
+	var config := ConfigFile.new()
+	if config.load("user://world.cfg") == OK:
+		var saved_profile := String(config.get_value("world", "graphics_profile", "HIGH"))
+		if saved_profile in ["HIGH", "MEDIUM", "LOW"]:
+			graphics_profile = saved_profile
+
+func _apply_graphics_profile() -> void:
+	match graphics_profile:
+		"HIGH":
+			vegetation_density_scale = 1.0
+			sun_light.shadow_enabled = true
+			sun_light.directional_shadow_max_distance = 84.0
+			rain_particles.amount = 420
+		"MEDIUM":
+			vegetation_density_scale = 0.72
+			sun_light.shadow_enabled = true
+			sun_light.directional_shadow_max_distance = 56.0
+			rain_particles.amount = 260
+		"LOW":
+			vegetation_density_scale = 0.45
+			sun_light.shadow_enabled = false
+			rain_particles.amount = 120
+	if status_label:
+		status_label.text = "VILLAGE FRONTIER  •  " + graphics_profile
+	if graphics_button:
+		graphics_button.text = "GRAPHICS: " + graphics_profile
+
+func _cycle_graphics_profile() -> void:
+	var profiles := ["HIGH", "MEDIUM", "LOW"]
+	var current_index := profiles.find(graphics_profile)
+	graphics_profile = profiles[(current_index + 1) % profiles.size()]
+	_apply_graphics_profile()
+	_save_world_state()
+	for chunk in loaded_chunks.values():
+		if is_instance_valid(chunk):
+			remove_child(chunk)
+			chunk.queue_free()
+	loaded_chunks.clear()
+	current_chunk = Vector2i(999999, 999999)
+	_update_chunks(true)
 
 func _toggle_pause() -> void:
 	is_paused = not is_paused
