@@ -39,6 +39,11 @@ var is_running := false
 var jump_requested := false
 var status_label: Label
 var chunk_label: Label
+var stamina_label: Label
+var stamina := 100.0
+const MAX_STAMINA := 100.0
+const STAMINA_DRAIN := 24.0
+const STAMINA_RECOVERY := 17.0
 var joystick: Control
 var joystick_knob: ColorRect
 var joystick_active := false
@@ -944,7 +949,7 @@ func _build_hud() -> void:
 	add_child(hud)
 	var top_panel := PanelContainer.new()
 	top_panel.position = Vector2(18, 16)
-	top_panel.custom_minimum_size = Vector2(310, 74)
+	top_panel.custom_minimum_size = Vector2(310, 94)
 	top_panel.add_theme_stylebox_override("panel", _panel_style(Color(0.025, 0.07, 0.10, 0.82)))
 	hud.add_child(top_panel)
 	var top_column := VBoxContainer.new()
@@ -960,6 +965,11 @@ func _build_hud() -> void:
 	chunk_label.add_theme_font_size_override("font_size", 12)
 	chunk_label.add_theme_color_override("font_color", Color(0.55, 0.84, 0.91))
 	top_column.add_child(chunk_label)
+	stamina_label = Label.new()
+	stamina_label.text = "STAMINA  100%"
+	stamina_label.add_theme_font_size_override("font_size", 12)
+	stamina_label.add_theme_color_override("font_color", Color(0.55, 0.91, 0.66))
+	top_column.add_child(stamina_label)
 	var help := Label.new()
 	help.text = "LEFT STICK: MOVE   •   DRAG RIGHT SIDE: LOOK"
 	help.position = Vector2(20, 100)
@@ -1417,8 +1427,18 @@ func _physics_process(delta: float) -> void:
 	camera_right.y = 0.0
 	camera_right = camera_right.normalized()
 	var direction := (camera_right * input_vector.x + camera_forward * -input_vector.y).normalized()
-	var target_speed := RUN_SPEED if is_running else WALK_SPEED
-	var target_velocity := direction * target_speed * input_strength
+	var sprinting := is_running and input_strength > 0.08 and stamina > 0.0
+	if sprinting:
+		stamina = maxf(0.0, stamina - STAMINA_DRAIN * delta)
+	else:
+		stamina = minf(MAX_STAMINA, stamina + STAMINA_RECOVERY * delta)
+	if stamina <= 0.0:
+		is_running = false
+	var target_speed := RUN_SPEED if sprinting else WALK_SPEED
+	var target_velocity := Vector2(direction.x, direction.z) * target_speed * input_strength
+	if stamina_label:
+		stamina_label.text = "STAMINA  %d%%" % int(round(stamina))
+		stamina_label.add_theme_color_override("font_color", Color(0.98, 0.62, 0.38) if stamina < 25.0 else Color(0.55, 0.91, 0.66))
 	var response := MOVE_ACCELERATION if input_strength > 0.08 else MOVE_DECELERATION
 	horizontal_velocity = horizontal_velocity.move_toward(target_velocity, response * delta)
 	player.velocity.x = horizontal_velocity.x
