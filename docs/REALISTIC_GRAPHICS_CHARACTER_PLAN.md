@@ -61,7 +61,7 @@ The following nine deliverables are now tracked as explicit acceptance items. A 
 | PBR Skin & Clothing | Base color, normal, roughness, AO and (where supported) subsurface/skin response; clothing material sets | Texture-channel inspection and mobile-renderer visual test | BLOCKED: authored PBR sets not present |
 | Realistic Trees | Detailed trunk/branch/leaf meshes, LODs, wind response and collision policy | Close/medium/far screenshots and Android frame-time profile | BLOCKED: detailed tree assets not present |
 | PBR Asset Pack | Licensed terrain, foliage, wood, stone, fabric and environment materials | Asset manifest, license records, import validation | BLOCKED: no complete pack in repository |
-| Realistic Water | Mobile-compatible water shader/material with depth tint, Fresnel, animated normals and shoreline treatment | GL Compatibility Android render test; no unsupported renderer-only shader features | OPEN |
+| Realistic Water | Mobile-compatible water shader/material with Fresnel response, layered animated wave normals and shoreline treatment | GL Compatibility Android render test; no unsupported renderer-only shader features | PARTIAL: layered animated waves, normal response and Fresnel added; depth tint/shoreline and device validation remain |
 | Spatial Audio | Active 3D audio listener, positional environment emitters, attenuation and bus/mix design | Listener + emitter test scene and headphone/device test | PARTIAL: active camera listener added; emitters/mix/tests remain |
 | Android FPS Testing | Runtime FPS/frame-time telemetry plus repeatable device test matrix | Actual Android device captures for target quality profiles and sustained test | PARTIAL: live FPS/frame-time HUD added; device measurements remain |
 | Android performance budgets | Quality presets, chunk/vegetation budgets, thermal and memory checks | Low/mid/high device reports, sustained 10-minute run | OPEN |
@@ -69,6 +69,7 @@ The following nine deliverables are now tracked as explicit acceptance items. A 
 ### Runtime changes in this update
 - Added an `AudioListener3D` under the active gameplay camera so 3D audio emitters can be spatialized relative to the player camera.
 - Added a half-second rolling FPS and frame-time HUD sample. This is runtime telemetry, not proof of a measured device benchmark.
+- Upgraded the starter-village water shader with layered animated wave motion, fragment normal variation, Fresnel edge response and lower roughness; depth-based tint, shoreline foam/transition and Android visual validation remain open.
 - No unlicensed or fabricated human/tree asset has been inserted. The current procedural human and vegetation remain fallback placeholders until suitable licensed assets are imported.
 
 ### Required Android test matrix
